@@ -1,6 +1,6 @@
 # 🛟 Support Guide
 
-Need help with **go-template**? You're in the right place. Here’s how to get support, report issues, and stay aligned with project guidelines.
+Need help with **go-fortress**? You're in the right place. Here’s how to get support, report issues, and stay aligned with project guidelines.
 
 <br/>
 
@@ -8,8 +8,8 @@ Need help with **go-template**? You're in the right place. Here’s how to get s
 
 Before asking, check the existing threads:
 
-* 🔍 Search [Issues](https://github.com/mrz1836/go-template/issues) or [Pull Requests](https://github.com/mrz1836/go-template/pulls?q=is%3Apr+is%3Aopen+is%3Aclosed)
-* 🆕 Can’t find what you need? Start a [new issue](https://github.com/mrz1836/go-template/issues/new?template=question.yml).
+* 🔍 Search [Issues](https://github.com/mrz1836/go-fortress/issues) or [Pull Requests](https://github.com/mrz1836/go-fortress/pulls?q=is%3Apr+is%3Aopen+is%3Aclosed)
+* 🆕 Can’t find what you need? Start a [new issue](https://github.com/mrz1836/go-fortress/issues/new?template=question.yml).
 
 <br/>
 
@@ -17,7 +17,7 @@ Before asking, check the existing threads:
 
 Found a bug?
 
-1. Check the [issue tracker](https://github.com/mrz1836/go-template/issues) to avoid duplicates.
+1. Check the [issue tracker](https://github.com/mrz1836/go-fortress/issues) to avoid duplicates.
 2. If it’s new, open an issue with:
 
 	* Clear steps to reproduce
@@ -46,7 +46,7 @@ Everything from commit rules to contributor expectations is in [AGENTS.md](./AGE
 ## 📬 Private Contact
 
 For sensitive or non-public concerns, reach out to:
-📧 [go-template@mrz1818.com](mailto:go-template@mrz1818.com)
+📧 [go-fortress@mrz1818.com](mailto:go-fortress@mrz1818.com)
 
 <br/>
 

@@ -1,14 +1,14 @@
-package template_test
+package fortress_test
 
 import (
 	"testing"
 
-	"github.com/mrz1836/go-template"
+	"github.com/mrz1836/go-fortress"
 )
 
 // BenchmarkGreet benchmarks the Greet function.
 func BenchmarkGreet(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = template.Greet("BenchmarkUser")
+		_ = fortress.Greet("BenchmarkUser")
 	}
 }

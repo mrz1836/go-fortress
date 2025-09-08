@@ -22,7 +22,7 @@
 				"sections": [
 					"standard",
 					"default",
-					"prefix(github.com/mrz1836/go-template)"
+					"prefix(github.com/mrz1836/go-fortress)"
 				]
 			},
 			"gofmt": {
@@ -33,7 +33,7 @@
 			},
 			"goimports": {
 				"local-prefixes": [
-					"github.com/mrz1836/go-template"
+					"github.com/mrz1836/go-fortress"
 				]
 			}
 		}

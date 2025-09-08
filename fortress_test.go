@@ -1,9 +1,9 @@
-package template_test
+package fortress_test
 
 import (
 	"testing"
 
-	"github.com/mrz1836/go-template"
+	"github.com/mrz1836/go-fortress"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -40,7 +40,7 @@ func TestGreet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := template.Greet(tt.input)
+			result := fortress.Greet(tt.input)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

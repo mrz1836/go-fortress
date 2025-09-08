@@ -13,7 +13,7 @@
     },
     "go.useLanguageServer": true,
     "gopls": {
-        "formatting.local": "github.com/mrz1836/go-template",
+        "formatting.local": "github.com/mrz1836/go-fortress",
         "formatting.gofumpt": true
     },
     "go.lintTool": "golangci-lint",

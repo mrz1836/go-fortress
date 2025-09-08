@@ -1,9 +1,9 @@
-package template_test
+package fortress_test
 
 import (
 	"testing"
 
-	"github.com/mrz1836/go-template"
+	"github.com/mrz1836/go-fortress"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,7 +21,7 @@ func FuzzGreet(f *testing.F) {
 	}
 
 	f.Fuzz(func(t *testing.T, input string) {
-		out := template.Greet(input)
+		out := fortress.Greet(input)
 		require.GreaterOrEqualf(t, len(out), 6, "output too short: %q", out)
 		require.Equalf(t, "Hello ", out[:6], "output does not start with 'Hello ': %q", out)
 	})
