@@ -128,7 +128,7 @@ Speed isn't just a feature—it's our religion. Watch your entire CI/CD pipeline
     <tr>
       <td><strong>🧪 Test Execution</strong></td>
       <td><code>32 seconds</code></td>
-      <td>Full test suite with coverage + race detection</td>
+      <td>Full test suite with coverage + race detection + Redis services</td>
     </tr>
     <tr>
       <td><strong>🔐 Security Scans</strong></td>
@@ -207,8 +207,8 @@ Like a medieval fortress with multiple walls, each layer of our defense system c
     </tr>
     <tr>
       <td><strong>🧪 Testing Arsenal</strong></td>
-      <td>Unit, Fuzz, Race, Benchmarks</td>
-      <td>• Multi-OS matrix testing<br>• Race condition detection<br>• Fuzz testing (Go 1.18+)<br>• Performance benchmarking</td>
+      <td>Unit, Fuzz, Race, Benchmarks, Redis</td>
+      <td>• Multi-OS matrix testing<br>• Race condition detection<br>• Fuzz testing (Go 1.18+)<br>• Performance benchmarking<br>• Redis service integration</td>
     </tr>
     <tr>
       <td><strong>📈 Coverage Intelligence</strong></td>
@@ -241,7 +241,7 @@ With 390+ knobs to turn and switches to flip, you're the architect of your own C
     <tr>
       <td><strong>Environment System</strong></td>
       <td><code>.env.base</code> + <code>.env.custom</code></td>
-      <td>390+ parameters for complete control</td>
+      <td>390+ parameters including Redis service configuration</td>
     </tr>
     <tr>
       <td><strong>Test Matrices</strong></td>

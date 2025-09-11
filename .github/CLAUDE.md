@@ -14,7 +14,7 @@ GoFortress orchestrates **16+ specialized workflows** that work in concert:
 | **Setup & Config** | `fortress.yml`, `fortress-setup-config.yml` | Environment loading, matrix generation |
 | **Quality Gates** | `fortress-code-quality.yml`, `fortress-pre-commit.yml` | Linting, formatting, static analysis |
 | **Security Layer** | `fortress-security-scans.yml` | Nancy, Govulncheck, Gitleaks |
-| **Testing Arsenal** | `fortress-test-*.yml` (6 files) | Unit, fuzz, race, benchmarks |
+| **Testing Arsenal** | `fortress-test-*.yml` (6 files) | Unit, fuzz, race, benchmarks, Redis services |
 | **Coverage System** | `fortress-coverage.yml` | Internal or Codecov reporting |
 | **Release Pipeline** | `fortress-release.yml` | GoReleaser automation |
 | **Reporting** | `fortress-completion-*.yml` (3 files) | Statistics, summaries, artifacts |
@@ -90,6 +90,14 @@ ENABLE_BENCHMARKS=true
 ENABLE_CODE_COVERAGE=true
 ENABLE_FUZZ_TESTING=true
 ENABLE_RACE_DETECTION=true
+ENABLE_REDIS_SERVICE=false
+
+# Redis Service Configuration
+REDIS_SERVICE_MODE=never  # Options: auto, always, never
+REDIS_VERSION=7-alpine
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_TRUST_SERVICE_HEALTH=true
 ```
 
 ### Custom Configuration Example
@@ -114,8 +122,8 @@ GO_COVERAGE_EXCLUDE_PATHS=test/,vendor/,examples/
    - Security Scans (5-15s)
    - Code Quality (31s)
    - Pre-commit Checks (26s)
-   - Test Suite (32s)
-   - Benchmarks (24s)
+   - Test Suite (32s) with Redis services
+   - Benchmarks (24s) with Redis services
 6. **Coverage Processing** (21s)
 7. **Completion Report** (27s)
 
@@ -140,8 +148,14 @@ GO_COVERAGE_EXCLUDE_PATHS=test/,vendor/,examples/
 3. **Cache Misses**
    - Verify `go.sum` hasn't changed unexpectedly
    - Check runner OS matches cache key
+   - Redis image cache may need warming
 
-4. **Pre-commit Failures**
+4. **Redis Service Issues**
+   - Check `ENABLE_REDIS_SERVICE` and `REDIS_SERVICE_MODE` settings
+   - Verify service container health checks are passing
+   - Consider disabling `REDIS_TRUST_SERVICE_HEALTH` for debugging
+
+5. **Pre-commit Failures**
    - Run `magex format:fix` locally first
    - Ensure `go-pre-commit` is installed
 
