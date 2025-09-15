@@ -29,6 +29,10 @@ on:
         description: "Whether GoFortress Pre-commit System is enabled"
         required: true
         type: string
+      go-sum-file:
+        description: "Path to go.sum file for dependency verification"
+        required: true
+        type: string
     outputs:
       pre-commit-version:
         description: "Version of go-pre-commit used"
@@ -53,25 +57,25 @@ jobs:
       pre-commit-version: ${{ steps.pre-commit-version.outputs.version }}
       checks-executed: ${{ steps.run-checks.outputs.executed }}
     steps:
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Checkout code (full checkout to ensure local actions are available)
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 📥 Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0 # Fetch full history to enable file change detection for all commit ranges
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Parse environment variables
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 🔧 Parse environment variables
         uses: ./.github/actions/parse-env
         with:
           env-json: ${{ inputs.env-json }}
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Setup Go with caching and version management
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 🏗️ Setup Go with Cache
         id: setup-go-precommit
         uses: ./.github/actions/setup-go-with-cache
@@ -80,33 +84,42 @@ jobs:
           matrix-os: ${{ inputs.primary-runner }}
           go-primary-version: ${{ inputs.go-primary-version }}
           go-secondary-version: ${{ inputs.go-primary-version }}
+          go-sum-file: ${{ env.GO_SUM_FILE }}
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
+      # Extract Go module directory from GO_SUM_FILE path
+      # --------------------------------------------------------------------
+      - name: 🔧 Extract Go module directory
+        uses: ./.github/actions/extract-module-dir
+        with:
+          go-sum-file: ${{ env.GO_SUM_FILE }}
+
+      # --------------------------------------------------------------------
       # Set golangci-lint cache path (shared with code-quality workflow)
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 🔧 Set golangci-lint cache path
         run: |
           echo "🔧 Setting up golangci-lint cache path for shared caching..."
           echo "GOLANGCI_LINT_CACHE=$HOME/.cache/golangci-lint" >> $GITHUB_ENV
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Restore golangci-lint analysis cache (shared with code-quality workflow)
       # Use restore-only to avoid cache conflicts during parallel execution
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 💾 Restore golangci-lint analysis cache
         id: cache-golangci-lint-analysis
         uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
         with:
           path: ${{ env.GOLANGCI_LINT_CACHE }}
-          key: ${{ inputs.primary-runner }}-golangci-lint-analysis-${{ hashFiles('.golangci.json', '**/go.sum') }}-${{ env.GO_PRE_COMMIT_GOLANGCI_LINT_VERSION }}
+          key: ${{ inputs.primary-runner }}-golangci-lint-analysis-${{ hashFiles('.golangci.json', env.GO_SUM_FILE) }}-${{ env.GO_PRE_COMMIT_GOLANGCI_LINT_VERSION }}
           restore-keys: |
-            ${{ inputs.primary-runner }}-golangci-lint-analysis-${{ hashFiles('.golangci.json', '**/go.sum') }}-
+            ${{ inputs.primary-runner }}-golangci-lint-analysis-${{ hashFiles('.golangci.json', env.GO_SUM_FILE) }}-
             ${{ inputs.primary-runner }}-golangci-lint-analysis-
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Restore (and later save) a compact cache for the go-pre-commit binary
       # Skip cache when using local development version
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 💾 Restore go-pre-commit binary cache
         id: go-pre-commit-cache
         if: env.GO_PRE_COMMIT_USE_LOCAL != 'true'
@@ -116,10 +129,10 @@ jobs:
             ~/.cache/go-pre-commit-bin
           key: ${{ inputs.primary-runner }}-go-pre-commit-${{ env.GO_PRE_COMMIT_VERSION }}
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Restore (and later save) a compact cache for go-pre-commit tools
       # (golangci-lint, gofumpt) to avoid reinstalling on every run
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 💾 Restore go-pre-commit tools cache
         id: go-pre-commit-tools-cache
         uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
@@ -174,9 +187,9 @@ jobs:
           GO_BIN="$(go env GOPATH)/bin"
           echo "GO_PRE_COMMIT_BINARY=$GO_BIN/go-pre-commit" >> $GITHUB_ENV
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Display pre-commit configuration
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 📋 Display pre-commit configuration
         run: |
           echo "🔧 GoFortress Pre-commit Configuration"
@@ -238,9 +251,9 @@ jobs:
           echo ""
           echo "=================================================="
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Install go-pre-commit tool when cache miss OR using local version
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 🔨 Install go-pre-commit tool
         if: steps.go-pre-commit-cache.outputs.cache-hit != 'true' || env.GO_PRE_COMMIT_USE_LOCAL == 'true'
         id: install-pre-commit
@@ -251,8 +264,16 @@ jobs:
             echo "  Building from source at: $GITHUB_WORKSPACE/cmd/go-pre-commit"
 
             # Build from local source
-            cd "$GITHUB_WORKSPACE"
-            go build -v -o /tmp/go-pre-commit ./cmd/go-pre-commit
+            GO_MODULE_DIR="${{ env.GO_MODULE_DIR }}"
+            if [ -n "$GO_MODULE_DIR" ]; then
+              echo "🔧 Building go-pre-commit from directory: $GO_MODULE_DIR"
+              cd "$GITHUB_WORKSPACE/$GO_MODULE_DIR"
+              go build -v -o /tmp/go-pre-commit ./cmd/go-pre-commit
+            else
+              echo "🔧 Building go-pre-commit from repository root"
+              cd "$GITHUB_WORKSPACE"
+              go build -v -o /tmp/go-pre-commit ./cmd/go-pre-commit
+            fi
             chmod +x /tmp/go-pre-commit
 
             # Copy the freshly built binary to cache directory
@@ -296,9 +317,9 @@ jobs:
             echo "version=$VERSION_OUTPUT" >> $GITHUB_OUTPUT
           fi
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Set install status for cache hit scenario (skip for local builds)
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: ✅ Set install status (cache hit)
         if: steps.go-pre-commit-cache.outputs.cache-hit == 'true' && env.GO_PRE_COMMIT_USE_LOCAL != 'true'
         id: install-pre-commit-cached
@@ -315,9 +336,9 @@ jobs:
             echo "version=${{ env.GO_PRE_COMMIT_VERSION }}" >> $GITHUB_OUTPUT
           fi
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Set pre-commit version output
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 📌 Set pre-commit version
         id: pre-commit-version
         run: |
@@ -332,9 +353,9 @@ jobs:
             echo "version=not-installed" >> $GITHUB_OUTPUT
           fi
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Detect changed files for CI mode (when not checking all files)
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 🔍 Detect changed files for CI
         if: env.GO_PRE_COMMIT_ALL_FILES != 'true' && (steps.install-pre-commit.outputs.install_success == 'true' || steps.install-pre-commit-cached.outputs.install_success == 'true')
         id: detect-files
@@ -480,9 +501,9 @@ jobs:
             echo "files_found=false" >> $GITHUB_OUTPUT
           fi
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Run pre-commit checks
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 🚀 Run pre-commit checks
         if: steps.install-pre-commit.outputs.install_success == 'true' || steps.install-pre-commit-cached.outputs.install_success == 'true'
         id: run-checks
@@ -552,10 +573,10 @@ jobs:
           echo ""
           echo "✅ All pre-commit checks passed successfully"
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Cache tools that were installed during pre-commit execution
       # This step ensures tools like golangci-lint and gofumpt are cached for future runs
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 💾 Cache go-pre-commit tools after installation
         if: steps.go-pre-commit-tools-cache.outputs.cache-hit != 'true' && (steps.install-pre-commit.outputs.install_success == 'true' || steps.install-pre-commit-cached.outputs.install_success == 'true')
         run: |
@@ -578,9 +599,9 @@ jobs:
 
           echo "✅ Tool caching completed"
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Job Summary
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 📊 Job Summary
         if: always()
         run: |
@@ -650,9 +671,9 @@ jobs:
             echo "- ✅ magex tidy" >> $GITHUB_STEP_SUMMARY
           fi
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Collect cache statistics
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 📊 Collect cache statistics
         id: cache-stats
         if: always()
@@ -666,9 +687,9 @@ jobs:
           gomod-cache-hit: ${{ steps.setup-go-precommit.outputs.module-cache-hit }}
           gobuild-cache-hit: ${{ steps.setup-go-precommit.outputs.build-cache-hit }}
 
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       # Upload infrastructure cache statistics
-      # ————————————————————————————————————————————————————————————————
+      # --------------------------------------------------------------------
       - name: 📤 Upload infrastructure cache statistics
         if: always()
         uses: ./.github/actions/upload-statistics
