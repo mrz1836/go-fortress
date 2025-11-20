@@ -3,8 +3,9 @@ package fortress_test
 import (
 	"testing"
 
-	"github.com/mrz1836/go-fortress"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/mrz1836/go-fortress"
 )
 
 // TestGreet tests the Greet function with various input scenarios using table-driven tests.
