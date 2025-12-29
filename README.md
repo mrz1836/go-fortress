@@ -67,24 +67,24 @@
     <td align="center" width="33%">
        📚&nbsp;<a href="#-documentation"><code>Documentation</code></a>
     </td>
-     <td align="center" width="33%">
-      🛠️&nbsp;<a href="#-code-standards"><code>Code&nbsp;Standards</code></a>
+    <td align="center" width="33%">
+       🛠️&nbsp;<a href="#-code-standards"><code>Code&nbsp;Standards</code></a>
     </td>
   </tr>
   <tr>
+    <td align="center">
+       🤖&nbsp;<a href="#-ai-usage--assistant-guidelines"><code>AI&nbsp;Usage</code></a>
+    </td>
+    <td align="center">
+       👥&nbsp;<a href="#-maintainers"><code>Maintainers</code></a>
+    </td>
     <td align="center">
        🤝&nbsp;<a href="#-contributing"><code>Contributing</code></a>
     </td>
-    <td align="center">
-       ⚖️&nbsp;<a href="#-license"><code>License</code></a>
-    </td>
-    <td align="center">
-      🤖&nbsp;<a href="#-ai-usage--assistant-guidelines"><code>AI&nbsp;Usage</code></a>
-    </td>
   </tr>
   <tr>
-    <td align="center">
-       👥&nbsp;<a href="#-maintainers"><code>Maintainers</code></a>
+    <td align="center" colspan="3">
+       ⚖️&nbsp;<a href="#-license"><code>License</code></a>
     </td>
   </tr>
 </table>
