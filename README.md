@@ -399,8 +399,10 @@ cp .github/.env.base your-project/.github/
 
 ## 📚 Documentation
 
-> **Good to know:** `go-fortress` ships with *zero* runtime dependencies.
-> The only external package we use is `testify` and `magefile` — and that's strictly for tests and dev.
+> **Good to know:** As a CI workflow system, `go-fortress` leverages **14 external GitHub Actions**
+> (official + security/coverage), integrates with **5+ external services** (Codecov, OSS Index,
+> pkg.go.dev, Docker Hub, GitHub Pages), and downloads **pure Go tools** at runtime (MAGE-X ecosystem,
+> security scanners). The Go code itself uses only `testify` for tests.
 
 <br/>
 
