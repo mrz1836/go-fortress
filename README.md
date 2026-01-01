@@ -162,7 +162,7 @@ Say goodbye to Python dependencies and hello to pure Go bliss. These battle-test
       <td><strong><a href="https://github.com/mrz1836/mage-x">MAGE-X</a></strong> <code>v1.13.x</code></td>
       <td>Build Automation</td>
       <td>Zero-config commands</td>
-      <td>• 241+ built-in targets<br>• Auto-discovery<br>• Cross-platform<br>• Enterprise-ready</td>
+      <td>• 190+ built-in targets<br>• Auto-discovery<br>• Cross-platform<br>• Enterprise-ready</td>
     </tr>
     <tr>
       <td><strong><a href="https://github.com/mrz1836/go-coverage">go-coverage</a></strong> <code>v1.1.x</code></td>
