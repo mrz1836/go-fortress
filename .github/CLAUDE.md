@@ -29,9 +29,9 @@ GoFortress orchestrates **16+ specialized workflows** that work in concert:
 ### Tool Symphony
 | Tool | Version | Integration | Key Features |
 |------|---------|-------------|--------------|
-| **MAGE-X** | v1.4.0 | Build automation | 241+ zero-config commands, auto-discovery |
-| **go-coverage** | v1.1.11 | Coverage tracking | GitHub Pages deploy, history, badges |
-| **go-pre-commit** | v1.1.15 | Git hooks | 17x faster than Python, parallel execution |
+| **MAGE-X** | v1.13.x | Build automation | 190+ zero-config commands, auto-discovery |
+| **go-coverage** | v1.1.x | Coverage tracking | GitHub Pages deploy, history, badges |
+| **go-pre-commit** | v1.4.x | Git hooks | 17x faster than Python, parallel execution |
 
 ### Performance Metrics
 Based on actual CI runs:
