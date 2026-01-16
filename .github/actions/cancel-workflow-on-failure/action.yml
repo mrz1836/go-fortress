@@ -77,7 +77,7 @@ runs:
       id: cancel
       shell: bash
       env:
-        # Use provided token or fall back to github.token (composite actions can't use expressions in defaults)
+        # Use provided token or fall back to github.token (composite action *input defaults* cannot use expressions like github.token, so the fallback is handled here)
         GH_TOKEN: ${{ inputs.github-token || github.token }}
         CANCEL_REASON: ${{ inputs.reason }}
         SKIP_ON_TAGS: ${{ inputs.skip-on-tags }}
@@ -164,9 +164,11 @@ runs:
           exit 0
         fi
 
-        # Extract HTTP status code (last line)
+        # Extract HTTP status code (last line) and response body (everything except last line)
+        # Note: This spawns subshells, but prioritizes readability and portability over micro-optimization.
+        # This code only runs on job failures (rare), and the performance difference is negligible (milliseconds).
+        # Alternative approaches using mapfile/arrays add complexity and bash 4+ dependency for minimal gain.
         HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n1)
-        # Extract response body (everything except last line)
         RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '$d')
 
         # Validate HTTP_STATUS is non-empty (malformed response protection)
