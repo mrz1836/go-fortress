@@ -159,19 +159,19 @@ Say goodbye to Python dependencies and hello to pure Go bliss. These battle-test
   </thead>
   <tbody>
     <tr>
-      <td><strong><a href="https://github.com/mrz1836/mage-x">MAGE-X</a></strong> <code>v1.13.x</code></td>
+      <td><strong><a href="https://github.com/mrz1836/mage-x">MAGE-X</a></strong> <code>v1.x.x</code></td>
       <td>Build Automation</td>
       <td>Zero-config commands</td>
       <td>• 190+ built-in targets<br>• Auto-discovery<br>• Cross-platform<br>• Enterprise-ready</td>
     </tr>
     <tr>
-      <td><strong><a href="https://github.com/mrz1836/go-coverage">go-coverage</a></strong> <code>v1.1.x</code></td>
+      <td><strong><a href="https://github.com/mrz1836/go-coverage">go-coverage</a></strong> <code>v1.x.x</code></td>
       <td>Coverage Intelligence</td>
       <td>Self-hosted reports</td>
       <td>• GitHub Pages deploy<br>• History tracking (90 days)<br>• SVG badges<br>• PR comments</td>
     </tr>
     <tr>
-      <td><strong><a href="https://github.com/mrz1836/go-pre-commit">go-pre-commit</a></strong> <code>v1.4.x</code></td>
+      <td><strong><a href="https://github.com/mrz1836/go-pre-commit">go-pre-commit</a></strong> <code>v1.x.x</code></td>
       <td>Git Hooks</td>
       <td>17x faster validation</td>
       <td>• Pure Go (no Python)<br>• Parallel execution<br>• 8+ configurable checks<br>• Auto-fix support</td>
@@ -196,12 +196,12 @@ Like a medieval fortress with multiple walls, each layer of our defense system c
   <tbody>
     <tr>
       <td><strong>🛡️ Security Layer</strong></td>
-      <td>Nancy <code>v1.0.x</code>, Govulncheck <code>v1.1.x</code>, Gitleaks <code>v8.30.x</code></td>
+      <td>Nancy, Govulncheck, Gitleaks <code>v8.x.x</code></td>
       <td>• Dependency vulnerability scanning<br>• Go-specific CVE detection<br>• Secret leak prevention<br>• Fork-safe execution</td>
     </tr>
     <tr>
       <td><strong>📊 Quality Gates</strong></td>
-      <td>golangci-lint <code>v2.7.x</code>, go vet, yamlfmt <code>v0.20.x</code></td>
+      <td>golangci-lint <code>v2.x.x</code>, go vet, yamlfmt</td>
       <td>• 66 linters enabled<br>• Static analysis<br>• YAML/JSON validation<br>• Triple-layer caching</td>
     </tr>
     <tr>
@@ -211,7 +211,7 @@ Like a medieval fortress with multiple walls, each layer of our defense system c
     </tr>
     <tr>
       <td><strong>📈 Coverage Intelligence</strong></td>
-      <td>go-coverage <code>v1.1.x</code> or Codecov</td>
+      <td>go-coverage <code>v1.x.x</code> or Codecov</td>
       <td>• Switchable providers<br>• History tracking (90 days)<br>• Trend analysis<br>• Badge generation</td>
     </tr>
     <tr>
