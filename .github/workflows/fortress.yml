@@ -251,7 +251,7 @@ jobs:
       pages: write # Required: Coverage workflow needs to deploy to GitHub Pages
       id-token: write # Required: Coverage workflow needs GitHub Pages authentication
       statuses: write # Required: Coverage workflow needs to create commit status checks
-      actions: write # Required: Test validation workflow needs artifacts + workflow cancellation on failure
+      actions: write # Required: Child test workflows (test matrix & fuzz tests) need artifacts + workflow cancellation on failure
     uses: ./.github/workflows/fortress-test-suite.yml
     with:
       code-coverage-enabled: ${{ needs.setup.outputs.code-coverage-enabled }}
