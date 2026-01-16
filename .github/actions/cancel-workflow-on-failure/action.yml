@@ -237,6 +237,11 @@ runs:
         esac
 
         # Escape markdown special characters that could break tables or formatting
+        # Note: Multiple parameter expansions are used intentionally over sed for:
+        #   - Pure bash (no external process overhead)
+        #   - Explicit, self-documenting escapes
+        #   - Easier maintenance and debugging
+        # This only runs on failures, so micro-optimization is not a priority.
         CANCEL_REASON_MD=$CANCEL_REASON
         CANCEL_REASON_MD=${CANCEL_REASON_MD//\\/\\\\}
         CANCEL_REASON_MD=${CANCEL_REASON_MD//|/\\|}
