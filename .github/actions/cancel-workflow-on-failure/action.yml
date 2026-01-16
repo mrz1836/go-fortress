@@ -101,7 +101,7 @@ runs:
         echo "  • Job: $GITHUB_JOB"
         echo "  • Run ID: $GITHUB_RUN_ID"
         echo "  • Ref: $GITHUB_REF"
-        echo "  • Reason: $CANCEL_REASON"
+        printf '  • Reason: %s\n' "$CANCEL_REASON"
         echo ""
 
         # Initialize outputs
@@ -171,7 +171,7 @@ runs:
           echo ""
           echo "⚠️ Unable to determine HTTP status from cancel API response"
           if [[ -n "$RESPONSE_BODY" ]]; then
-            echo "   Raw response: $RESPONSE_BODY"
+            printf '   Raw response (sanitized): %q\n' "$RESPONSE_BODY"
           fi
           echo ""
           echo "skipped=true" >> "$GITHUB_OUTPUT"
@@ -223,7 +223,7 @@ runs:
             echo ""
             echo "⚠️ Unexpected response (HTTP $HTTP_STATUS)"
             if [[ -n "$RESPONSE_BODY" ]]; then
-              echo "   Response: $RESPONSE_BODY"
+              printf '   Response (sanitized): %q\n' "$RESPONSE_BODY"
             fi
             echo ""
             echo "skipped=true" >> "$GITHUB_OUTPUT"
@@ -231,10 +231,17 @@ runs:
             ;;
         esac
 
-        # Escape CANCEL_REASON for markdown table safety (prevent injection)
-        # Escape pipe characters and backticks that could break markdown tables
-        CANCEL_REASON_MD=${CANCEL_REASON//|/\\|}
+        # Escape markdown special characters that could break tables or formatting
+        CANCEL_REASON_MD=$CANCEL_REASON
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//\\/\\\\}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//|/\\|}
         CANCEL_REASON_MD=${CANCEL_REASON_MD//\`/\\\`}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//\*/\\*}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//_/\\_}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//[/\\[}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//]/\\]}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//</\\<}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//>/\\>}
 
         # Add to job summary (always, regardless of success/failure)
         {
