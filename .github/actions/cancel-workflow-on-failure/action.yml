@@ -110,7 +110,7 @@ runs:
         echo "skip-reason=" >> "$GITHUB_OUTPUT"
 
         # Check if we should skip cancellation for tags
-        if [[ "$SKIP_ON_TAGS" == "true" && "$GITHUB_REF" == refs/tags/* ]]; then
+        if [[ "$SKIP_ON_TAGS" == "true" && "$GITHUB_REF" == "refs/tags/"* ]]; then
           echo "⏭️ Skipping cancellation: Running on a tag and skip-on-tags is enabled"
           echo "   This allows release workflows to complete even if non-critical jobs fail"
           echo ""
@@ -137,6 +137,7 @@ runs:
         # Cancel the workflow run using curl for better control and error handling
         # This avoids dependency on gh CLI being installed
         # Added timeouts to prevent hanging on network issues
+        # Note: stderr is NOT redirected to avoid interfering with HTTP status code parsing
         CURL_EXIT=0
         HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" \
           --connect-timeout 10 \
@@ -145,7 +146,7 @@ runs:
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer $GH_TOKEN" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
-          "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel" 2>&1) || CURL_EXIT=$?
+          "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/cancel") || CURL_EXIT=$?
 
         # Handle curl-level errors (network issues, timeouts)
         if [[ $CURL_EXIT -ne 0 ]]; then
@@ -164,6 +165,19 @@ runs:
         HTTP_STATUS=$(echo "$HTTP_RESPONSE" | tail -n1)
         # Extract response body (everything except last line)
         RESPONSE_BODY=$(echo "$HTTP_RESPONSE" | sed '$d')
+
+        # Validate HTTP_STATUS is non-empty (malformed response protection)
+        if [[ -z "$HTTP_STATUS" ]]; then
+          echo ""
+          echo "⚠️ Unable to determine HTTP status from cancel API response"
+          if [[ -n "$RESPONSE_BODY" ]]; then
+            echo "   Raw response: $RESPONSE_BODY"
+          fi
+          echo ""
+          echo "skipped=true" >> "$GITHUB_OUTPUT"
+          echo "skip-reason=api-error-empty-status" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
 
         echo "📡 API Response Status: $HTTP_STATUS"
 
@@ -217,13 +231,18 @@ runs:
             ;;
         esac
 
+        # Escape CANCEL_REASON for markdown table safety (prevent injection)
+        # Escape pipe characters and backticks that could break markdown tables
+        CANCEL_REASON_MD=${CANCEL_REASON//|/\\|}
+        CANCEL_REASON_MD=${CANCEL_REASON_MD//\`/\\\`}
+
         # Add to job summary (always, regardless of success/failure)
         {
           echo "## 🚨 Workflow Cancellation"
           echo ""
           echo "| Detail | Value |"
           echo "|--------|-------|"
-          echo "| **Reason** | $CANCEL_REASON |"
+          echo "| **Reason** | $CANCEL_REASON_MD |"
           echo "| **Triggered by** | \`$GITHUB_JOB\` |"
           echo "| **Run ID** | $GITHUB_RUN_ID |"
           echo "| **Status** | $([ "$HTTP_STATUS" == "202" ] && echo "✅ Accepted" || echo "⚠️ HTTP $HTTP_STATUS") |"
