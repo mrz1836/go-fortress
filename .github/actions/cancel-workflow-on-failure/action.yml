@@ -91,9 +91,10 @@ runs:
       run: |
         # Note: Using set -uo pipefail (but not -e):
         #   -e is avoided so we can handle errors (like curl failures and HTTP status codes) explicitly
-        #   -o pipefail means any failing command in a pipeline will still cause the script to exit
-        #      unless that pipeline handles errors explicitly (e.g., curl ... || CURL_EXIT=$?)
-        # When adding new pipelines, ensure each one includes explicit error handling if early exit is not desired.
+        #   -o pipefail causes a pipeline to return a failure exit status if any command in the pipeline fails,
+        #      but it does not by itself cause the script to exit without -e; exit behavior is controlled explicitly.
+        # When adding new pipelines, ensure each one either handles failures explicitly (e.g., curl ... || CURL_EXIT=$?)
+        #   or that you deliberately check and react to the pipeline's exit status if early exit is desired.
         set -uo pipefail
 
         echo "🚨 Workflow Cancellation Triggered"
