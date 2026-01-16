@@ -113,7 +113,7 @@ runs:
         echo "skip-reason=" >> "$GITHUB_OUTPUT"
 
         # Check if we should skip cancellation for tags
-        if [[ "$SKIP_ON_TAGS" == "true" && "$GITHUB_REF" == "refs/tags/"* ]]; then
+        if [[ "$SKIP_ON_TAGS" == "true" && "$GITHUB_REF" =~ ^refs/tags/.+ ]]; then
           echo "⏭️ Skipping cancellation: Running on a tag and skip-on-tags is enabled"
           echo "   This allows release workflows to complete even if non-critical jobs fail"
           echo ""
@@ -246,6 +246,13 @@ runs:
         CANCEL_REASON_MD=${CANCEL_REASON_MD//</\\<}
         CANCEL_REASON_MD=${CANCEL_REASON_MD//>/\\>}
 
+        # Determine status cell value for job summary
+        if [[ "$HTTP_STATUS" == "202" ]]; then
+          STATUS_CELL_VALUE="✅ Accepted"
+        else
+          STATUS_CELL_VALUE="⚠️ HTTP $HTTP_STATUS"
+        fi
+
         # Add to job summary (always, regardless of success/failure)
         {
           echo "## 🚨 Workflow Cancellation"
@@ -255,7 +262,7 @@ runs:
           echo "| **Reason** | $CANCEL_REASON_MD |"
           echo "| **Triggered by** | \`$GITHUB_JOB\` |"
           echo "| **Run ID** | $GITHUB_RUN_ID |"
-          echo "| **Status** | $([ "$HTTP_STATUS" == "202" ] && echo "✅ Accepted" || echo "⚠️ HTTP $HTTP_STATUS") |"
+          echo "| **Status** | $STATUS_CELL_VALUE |"
           echo ""
           if [[ "$HTTP_STATUS" == "202" ]]; then
             echo "This cancellation was triggered to save CI resources after a critical failure."
