@@ -57,7 +57,7 @@ inputs:
   github-token:
     description: "GitHub token with actions:write permission (defaults to GITHUB_TOKEN)"
     required: false
-    default: ${{ github.token }}
+    default: ""
 
 outputs:
   cancelled:
@@ -77,7 +77,8 @@ runs:
       id: cancel
       shell: bash
       env:
-        GH_TOKEN: ${{ inputs.github-token }}
+        # Use provided token or fall back to github.token (composite actions can't use expressions in defaults)
+        GH_TOKEN: ${{ inputs.github-token || github.token }}
         CANCEL_REASON: ${{ inputs.reason }}
         SKIP_ON_TAGS: ${{ inputs.skip-on-tags }}
         GRACE_PERIOD: ${{ inputs.grace-period }}
@@ -88,7 +89,9 @@ runs:
         GITHUB_WORKFLOW: ${{ github.workflow }}
         GITHUB_API_URL: ${{ github.api_url }}
       run: |
-        set -euo pipefail
+        # Note: Using set -uo (not -e) because we handle errors gracefully
+        # -e would exit before our error handlers for curl failures and HTTP status codes
+        set -uo pipefail
 
         echo "🚨 Workflow Cancellation Triggered"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
