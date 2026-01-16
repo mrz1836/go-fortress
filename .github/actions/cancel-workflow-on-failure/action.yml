@@ -89,8 +89,11 @@ runs:
         GITHUB_WORKFLOW: ${{ github.workflow }}
         GITHUB_API_URL: ${{ github.api_url }}
       run: |
-        # Note: Using set -uo (not -e) because we handle errors gracefully
-        # -e would exit before our error handlers for curl failures and HTTP status codes
+        # Note: Using set -uo pipefail (but not -e):
+        #   -e is avoided so we can handle errors (like curl failures and HTTP status codes) explicitly
+        #   -o pipefail means any failing command in a pipeline will still cause the script to exit
+        #      unless that pipeline handles errors explicitly (e.g., curl ... || CURL_EXIT=$?)
+        # When adding new pipelines, ensure each one includes explicit error handling if early exit is not desired.
         set -uo pipefail
 
         echo "🚨 Workflow Cancellation Triggered"
