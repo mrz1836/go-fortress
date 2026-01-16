@@ -251,7 +251,7 @@ jobs:
       pages: write # Required: Coverage workflow needs to deploy to GitHub Pages
       id-token: write # Required: Coverage workflow needs GitHub Pages authentication
       statuses: write # Required: Coverage workflow needs to create commit status checks
-      actions: write # Required: Child test workflows (test matrix & fuzz tests) need artifacts + workflow cancellation on failure
+      actions: write # Required: Manage/cancel child test workflows (test matrix & fuzz tests); artifact access only needs actions: read
     uses: ./.github/workflows/fortress-test-suite.yml
     with:
       code-coverage-enabled: ${{ needs.setup.outputs.code-coverage-enabled }}
@@ -467,13 +467,13 @@ jobs:
       release-result: ${{ needs.release.result }}
       security-result: ${{ needs.security.result }}
       setup-result: ${{ needs.setup.result }}
-      start-epoch: ${{ needs.setup.outputs.start-epoch != '' && needs.setup.outputs.start-epoch || '0' }}
-      start-time: ${{ needs.setup.outputs.start-time != '' && needs.setup.outputs.start-time || 'unknown' }}
+      start-epoch: ${{ needs.setup.outputs.start-epoch }}
+      start-time: ${{ needs.setup.outputs.start-time }}
       status-check-result: ${{ needs.status-check.result }}
       test-magex-result: ${{ needs.test-magex.result }}
-      test-matrix: ${{ needs.setup.outputs.test-matrix != '' && needs.setup.outputs.test-matrix || '[]' }}
+      test-matrix: ${{ needs.setup.outputs.test-matrix }}
       test-suite-result: ${{ needs.test-suite.result }}
-      gofortress-version: ${{ needs.setup.outputs.gofortress-version != '' && needs.setup.outputs.gofortress-version || 'unknown' }}
-      gofortress-released: ${{ needs.setup.outputs.gofortress-released != '' && needs.setup.outputs.gofortress-released || 'unknown' }}
-      is-fork-pr: ${{ needs.setup.outputs.is-fork-pr != '' && needs.setup.outputs.is-fork-pr || 'false' }}
-      fork-security-mode: ${{ needs.setup.outputs.fork-security-mode != '' && needs.setup.outputs.fork-security-mode || 'full' }}
+      gofortress-version: ${{ needs.setup.outputs.gofortress-version }}
+      gofortress-released: ${{ needs.setup.outputs.gofortress-released }}
+      is-fork-pr: ${{ needs.setup.outputs.is-fork-pr }}
+      fork-security-mode: ${{ needs.setup.outputs.fork-security-mode }}
