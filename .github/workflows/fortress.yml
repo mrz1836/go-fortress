@@ -451,9 +451,8 @@ jobs:
     name: 📊 Workflow Completion Report
     if: |
       always() &&
-      needs.setup.outputs.completion-report-enabled == 'true' &&
-      !contains(fromJSON('["failure", "cancelled"]'), needs.setup.result) &&
-      !contains(fromJSON('["failure", "cancelled"]'), needs.test-magex.result)
+      needs.load-env.result == 'success' &&
+      !contains(fromJSON('["cancelled"]'), needs.load-env.result)
     needs: [load-env, setup, test-magex, pre-commit, security, code-quality, test-suite, benchmarks, release, status-check]
     permissions:
       contents: read # Read repository content for completion report
@@ -464,17 +463,17 @@ jobs:
       code-quality-result: ${{ needs.code-quality.result }}
       pre-commit-result: ${{ needs.pre-commit.result }}
       env-json: ${{ needs.load-env.outputs.env-json }}
-      primary-runner: ${{ needs.setup.outputs.primary-runner }}
+      primary-runner: ${{ needs.setup.outputs.primary-runner != '' && needs.setup.outputs.primary-runner || needs.load-env.outputs.primary-runner }}
       release-result: ${{ needs.release.result }}
       security-result: ${{ needs.security.result }}
       setup-result: ${{ needs.setup.result }}
-      start-epoch: ${{ needs.setup.outputs.start-epoch }}
-      start-time: ${{ needs.setup.outputs.start-time }}
+      start-epoch: ${{ needs.setup.outputs.start-epoch != '' && needs.setup.outputs.start-epoch || 0 }}
+      start-time: ${{ needs.setup.outputs.start-time != '' && needs.setup.outputs.start-time || 'unknown' }}
       status-check-result: ${{ needs.status-check.result }}
       test-magex-result: ${{ needs.test-magex.result }}
-      test-matrix: ${{ needs.setup.outputs.test-matrix }}
+      test-matrix: ${{ needs.setup.outputs.test-matrix != '' && needs.setup.outputs.test-matrix || '[]' }}
       test-suite-result: ${{ needs.test-suite.result }}
-      gofortress-version: ${{ needs.setup.outputs.gofortress-version }}
-      gofortress-released: ${{ needs.setup.outputs.gofortress-released }}
-      is-fork-pr: ${{ needs.setup.outputs.is-fork-pr }}
-      fork-security-mode: ${{ needs.setup.outputs.fork-security-mode }}
+      gofortress-version: ${{ needs.setup.outputs.gofortress-version != '' && needs.setup.outputs.gofortress-version || 'unknown' }}
+      gofortress-released: ${{ needs.setup.outputs.gofortress-released != '' && needs.setup.outputs.gofortress-released || 'unknown' }}
+      is-fork-pr: ${{ needs.setup.outputs.is-fork-pr != '' && needs.setup.outputs.is-fork-pr || 'false' }}
+      fork-security-mode: ${{ needs.setup.outputs.fork-security-mode != '' && needs.setup.outputs.fork-security-mode || 'full' }}
