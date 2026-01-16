@@ -314,7 +314,7 @@ Witness the symphony of 18 specialized workflows performing in perfect harmony. 
 **18 Specialized Workflows:**
 
 ```
-fortress.yml (Main Orchestrator v1.3.0)
+fortress.yml (Main Orchestrator v1.4.0)
 │
 ├── load-env ─────────────────────► Loads .env.base + .env.custom
 │
@@ -336,12 +336,13 @@ fortress.yml (Main Orchestrator v1.3.0)
 │   └── gitleaks                    • Secret scanning (fork-safe)
 │
 ├── pre-commit ───────────────────► fortress-pre-commit.yml
-│                                   • 8+ parallel checks
-│                                   • 17x faster than Python
+│                                   • 8+ parallel checks like:
+│                                   • gomt, golangci-lint, gitleaks
+│                                   • mod-tidy, whitespace, eof, fumpt
 │
 ├── code-quality ─────────────────► fortress-code-quality.yml
 │   ├── govet                       • Static analysis
-│   ├── lint                        • 66 golangci-lint rules
+│   ├── lint                        • 60+ golangci-lint rules
 │   └── yaml-format                 • YAML/JSON validation
 │
 ├── test-suite ───────────────────► fortress-test-suite.yml
@@ -465,7 +466,7 @@ This process ensures consistent, repeatable releases with properly versioned art
 <summary><strong><code>Pre-commit Hooks</code></strong></summary>
 <br/>
 
-Set up the Go-Pre-commit System to run the same formatting, linting, and tests defined in [AGENTS.md](.github/AGENTS.md) before every commit:
+Set up the Go-Pre-commit System to run the same formatting, linting, and tests defined in [pre-commit.md](.github/tech-conventions/pre-commit.md) before every commit:
 
 ```bash
 go install github.com/mrz1836/go-pre-commit/cmd/go-pre-commit@latest
@@ -506,8 +507,9 @@ This magical file controls everything from:
 | [dependabot-auto-merge.yml](.github/workflows/dependabot-auto-merge.yml)           | Automatically merges [Dependabot](https://github.com/dependabot) PRs that meet all requirements.                       |
 | [fortress.yml](.github/workflows/fortress.yml)                                     | Runs the GoFortress security and testing workflow, including linting, testing, releasing, and vulnerability checks.    |
 | [pull-request-management.yml](.github/workflows/pull-request-management.yml)       | Labels PRs by branch prefix, assigns a default user if none is assigned, and welcomes new contributors with a comment. |
+| [pull-request-management-fork.yml](.github/workflows/pull-request-management-fork.yml) | Safely handles fork PRs with restricted permissions, including labeling and welcome messages.                          |
 | [scorecard.yml](.github/workflows/scorecard.yml)                                   | Runs [OpenSSF](https://openssf.org/) Scorecard to assess supply chain security.                                        |
-| [stale.yml](.github/workflows/stale-check.yml)                                     | Warns about (and optionally closes) inactive issues and PRs on a schedule or manual trigger.                           |
+| [stale-check.yml](.github/workflows/stale-check.yml)                               | Warns about (and optionally closes) inactive issues and PRs on a schedule or manual trigger.                           |
 | [sync-labels.yml](.github/workflows/sync-labels.yml)                               | Keeps GitHub labels in sync with the declarative manifest at [`.github/labels.yml`](./.github/labels.yml).             |
 
 </details>
