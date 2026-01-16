@@ -452,7 +452,12 @@ jobs:
     if: |
       always() &&
       needs.load-env.result == 'success' &&
-      needs.load-env.result != 'cancelled'
+      needs.load-env.result != 'cancelled' &&
+      needs.setup.result == 'success' &&
+      needs.setup.result != 'cancelled' &&
+      needs.test-magex.result == 'success' &&
+      needs.test-magex.result != 'cancelled' &&
+      needs.setup.outputs.completion-report-enabled == 'true'
     needs: [load-env, setup, test-magex, pre-commit, security, code-quality, test-suite, benchmarks, release, status-check]
     permissions:
       contents: read # Read repository content for completion report
@@ -463,7 +468,7 @@ jobs:
       code-quality-result: ${{ needs.code-quality.result }}
       pre-commit-result: ${{ needs.pre-commit.result }}
       env-json: ${{ needs.load-env.outputs.env-json }}
-      primary-runner: ${{ needs.setup.outputs.primary-runner != '' && needs.setup.outputs.primary-runner || needs.load-env.outputs.primary-runner }}
+      primary-runner: ${{ needs.setup.outputs.primary-runner }}
       release-result: ${{ needs.release.result }}
       security-result: ${{ needs.security.result }}
       setup-result: ${{ needs.setup.result }}
