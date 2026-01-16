@@ -336,12 +336,13 @@ fortress.yml (Main Orchestrator v1.4.0)
 │   └── gitleaks                    • Secret scanning (fork-safe)
 │
 ├── pre-commit ───────────────────► fortress-pre-commit.yml
-│                                   • 8+ parallel checks
-│                                   • 17x faster than Python
+│                                   • 8+ parallel checks like:
+│                                   • gomt, golangci-lint, gitleaks
+│                                   • mod-tidy, whitespace, eof, fumpt
 │
 ├── code-quality ─────────────────► fortress-code-quality.yml
 │   ├── govet                       • Static analysis
-│   ├── lint                        • 66 golangci-lint rules
+│   ├── lint                        • 60+ golangci-lint rules
 │   └── yaml-format                 • YAML/JSON validation
 │
 ├── test-suite ───────────────────► fortress-test-suite.yml
