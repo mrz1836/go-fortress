@@ -452,7 +452,7 @@ jobs:
     if: |
       always() &&
       needs.load-env.result == 'success' &&
-      !contains(fromJSON('["cancelled"]'), needs.load-env.result)
+      needs.load-env.result != 'cancelled'
     needs: [load-env, setup, test-magex, pre-commit, security, code-quality, test-suite, benchmarks, release, status-check]
     permissions:
       contents: read # Read repository content for completion report
@@ -467,7 +467,7 @@ jobs:
       release-result: ${{ needs.release.result }}
       security-result: ${{ needs.security.result }}
       setup-result: ${{ needs.setup.result }}
-      start-epoch: ${{ needs.setup.outputs.start-epoch != '' && needs.setup.outputs.start-epoch || 0 }}
+      start-epoch: ${{ needs.setup.outputs.start-epoch != '' && needs.setup.outputs.start-epoch || '0' }}
       start-time: ${{ needs.setup.outputs.start-time != '' && needs.setup.outputs.start-time || 'unknown' }}
       status-check-result: ${{ needs.status-check.result }}
       test-magex-result: ${{ needs.test-magex.result }}
