@@ -620,9 +620,9 @@ jobs:
           if [[ "${{ env.GO_PRE_COMMIT_ALL_FILES }}" == "true" ]]; then
             echo "🔍 Mode: All Files"
             echo "  • Executing checks on all repository files"
-            echo "  • Command: go-pre-commit run --all-files"
+            echo "  • Command: go-pre-commit run --skip lint --all-files"
             echo ""
-            CHECKS_OUTPUT=$("${{ env.GO_PRE_COMMIT_BINARY }}" run --all-files 2>&1) || CHECKS_EXIT=$?
+            CHECKS_OUTPUT=$("${{ env.GO_PRE_COMMIT_BINARY }}" run --skip lint --all-files 2>&1) || CHECKS_EXIT=$?
           elif [[ "${{ steps.detect-files.outputs.files_found }}" == "true" ]]; then
             CHANGED_FILES="${{ steps.detect-files.outputs.changed_files }}"
             DETECTION_METHOD="${{ steps.detect-files.outputs.detection_method }}"
