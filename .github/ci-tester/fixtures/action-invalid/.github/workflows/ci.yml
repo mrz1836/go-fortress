@@ -14,4 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Test invalid action
-        run: echo "Testing action.yml validation"
+        run: |
+          echo "Testing action.yml validation"
+          echo "Checking action.yml schema..."
+          echo "action.yml schema validation failed"
+          echo "invalid: required field 'name' is missing"
+          echo "action.yml is invalid"
+          exit 1
