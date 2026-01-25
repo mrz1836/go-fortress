@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/mrz1836/go-fortress/guardian/validator"
 )
