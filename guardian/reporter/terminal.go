@@ -54,13 +54,15 @@ func (r *TerminalReporter) Write(_ context.Context, report *Report, w io.Writer)
 		r.writeStaticResults(w, report.StaticResults)
 	}
 
-	// Scenario results
+	// Scenario results or skipped notice
 	if len(report.ScenarioResults) > 0 {
 		r.writeScenarioResults(w, report.ScenarioResults)
+	} else if report.RunnerStatus != nil && !report.RunnerStatus.Available {
+		r.writeRunnerSkipped(w, report.RunnerStatus)
 	}
 
 	// Summary
-	r.writeSummary(w, &report.Summary, report.Duration)
+	r.writeSummary(w, &report.Summary, report.Duration, report.RunnerStatus)
 
 	return nil
 }
@@ -260,34 +262,101 @@ func (r *TerminalReporter) writeScenarioResults(w io.Writer, results []ScenarioR
 	_, _ = fmt.Fprintln(w)
 }
 
+// writeRunnerSkipped outputs information when scenarios cannot execute.
+func (r *TerminalReporter) writeRunnerSkipped(w io.Writer, status *RunnerStatus) {
+	// Determine a user-friendly message
+	reason := status.UnavailableMsg
+	if reason == "" {
+		reason = "Runner not available"
+	}
+
+	// Check if it's a Docker-related issue
+	isDockerIssue := strings.Contains(strings.ToLower(reason), "docker")
+
+	_, _ = fmt.Fprintf(w, "%s Scenario Tests: %s - %s\n",
+		r.icon("warning"),
+		r.yellow("SKIPPED"),
+		reason)
+
+	_, _ = fmt.Fprintln(w, "  │")
+	_, _ = fmt.Fprintf(w, "  │  %d scenarios cannot execute without Docker\n", status.RegisteredCount)
+	_, _ = fmt.Fprintln(w, "  │")
+
+	if isDockerIssue {
+		_, _ = fmt.Fprintln(w, "  │  To enable scenario testing:")
+		_, _ = fmt.Fprintln(w, "  │    1. Start Docker Desktop")
+		_, _ = fmt.Fprintf(w, "  │    2. Run: %s (to verify)\n", r.cyan("docker info"))
+		_, _ = fmt.Fprintf(w, "  │    3. Re-run: %s\n", r.cyan("magex ci:verify"))
+	} else {
+		_, _ = fmt.Fprintln(w, "  │  To enable scenario testing:")
+		_, _ = fmt.Fprintf(w, "  │    Resolve: %s\n", reason)
+	}
+
+	_, _ = fmt.Fprintln(w, "  │")
+	_, _ = fmt.Fprintf(w, "  │  To see available scenarios: %s\n", r.cyan("magex ci:list"))
+	_, _ = fmt.Fprintln(w, "  │")
+	_, _ = fmt.Fprintln(w)
+}
+
 // writeSummary formats the report summary.
-func (r *TerminalReporter) writeSummary(w io.Writer, summary *ReportSummary, duration time.Duration) {
+func (r *TerminalReporter) writeSummary(w io.Writer, summary *ReportSummary, duration time.Duration, runnerStatus *RunnerStatus) {
 	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("-", 50))
 	_, _ = fmt.Fprintf(w, "Summary:\n")
 	_, _ = fmt.Fprintf(w, "  Duration: %s\n", formatDuration(duration))
 
-	if summary.TotalFindings > 0 {
-		_, _ = fmt.Fprintf(w, "  Findings: %d total", summary.TotalFindings)
+	r.writeStaticSummary(w, summary)
+	scenariosSkipped := r.writeScenarioSummary(w, summary, runnerStatus)
 
-		if len(summary.FindingsByLevel) > 0 {
-			_, _ = fmt.Fprintf(w, " (")
-
-			parts := []string{}
-			if n, ok := summary.FindingsByLevel[validator.SeverityError]; ok && n > 0 {
-				parts = append(parts, fmt.Sprintf("%d errors", n))
-			}
-
-			if n, ok := summary.FindingsByLevel[validator.SeverityWarning]; ok && n > 0 {
-				parts = append(parts, fmt.Sprintf("%d warnings", n))
-			}
-
-			_, _ = fmt.Fprintf(w, "%s)", strings.Join(parts, ", "))
-		}
-
-		_, _ = fmt.Fprintln(w)
+	if summary.ExceptionsApplied > 0 {
+		_, _ = fmt.Fprintf(w, "  Exceptions: %d applied\n", summary.ExceptionsApplied)
 	}
 
-	if summary.TotalScenarios > 0 {
+	r.writeFinalStatus(w, summary, scenariosSkipped)
+}
+
+// writeStaticSummary writes the static validation findings summary.
+func (r *TerminalReporter) writeStaticSummary(w io.Writer, summary *ReportSummary) {
+	if summary.TotalFindings == 0 {
+		_, _ = fmt.Fprintln(w, "  Static: 0 findings")
+		return
+	}
+
+	_, _ = fmt.Fprintf(w, "  Static: %s", pluralize(summary.TotalFindings, "finding"))
+
+	parts := r.buildFindingsParts(summary.FindingsByLevel)
+	if len(parts) > 0 {
+		_, _ = fmt.Fprintf(w, " (%s)", strings.Join(parts, ", "))
+	}
+
+	_, _ = fmt.Fprintln(w)
+}
+
+// buildFindingsParts builds the breakdown of findings by severity.
+func (r *TerminalReporter) buildFindingsParts(findingsByLevel map[validator.Severity]int) []string {
+	var parts []string
+
+	if n, ok := findingsByLevel[validator.SeverityError]; ok && n > 0 {
+		parts = append(parts, pluralize(n, "error"))
+	}
+
+	if n, ok := findingsByLevel[validator.SeverityWarning]; ok && n > 0 {
+		parts = append(parts, pluralize(n, "warning"))
+	}
+
+	return parts
+}
+
+// writeScenarioSummary writes the scenario execution summary. Returns true if scenarios were skipped.
+func (r *TerminalReporter) writeScenarioSummary(w io.Writer, summary *ReportSummary, runnerStatus *RunnerStatus) bool {
+	scenariosSkipped := runnerStatus != nil && !runnerStatus.Available
+
+	if scenariosSkipped {
+		reason := formatSkipReason(runnerStatus.UnavailableMsg)
+		_, _ = fmt.Fprintf(w, "  Scenarios: %d/%d executed (%s)\n",
+			runnerStatus.ExecutedCount,
+			runnerStatus.RegisteredCount,
+			reason)
+	} else if summary.TotalScenarios > 0 {
 		_, _ = fmt.Fprintf(w, "  Scenarios: %d passed, %d failed, %d skipped, %d errors\n",
 			summary.PassedScenarios,
 			summary.FailedScenarios,
@@ -295,19 +364,46 @@ func (r *TerminalReporter) writeSummary(w io.Writer, summary *ReportSummary, dur
 			summary.ErrorScenarios)
 	}
 
-	if summary.ExceptionsApplied > 0 {
-		_, _ = fmt.Fprintf(w, "  Exceptions: %d applied\n", summary.ExceptionsApplied)
-	}
+	return scenariosSkipped
+}
 
-	// Overall status
+// writeFinalStatus writes the final status line.
+func (r *TerminalReporter) writeFinalStatus(w io.Writer, summary *ReportSummary, scenariosSkipped bool) {
 	_, _ = fmt.Fprintln(w)
 
-	if summary.FailedScenarios == 0 && summary.ErrorScenarios == 0 &&
-		summary.FindingsByLevel[validator.SeverityError] == 0 {
-		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("check"), r.green("All checks passed!"))
-	} else {
+	hasErrors := summary.FailedScenarios > 0 || summary.ErrorScenarios > 0 ||
+		summary.FindingsByLevel[validator.SeverityError] > 0
+
+	switch {
+	case hasErrors:
 		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("cross"), r.red("Some checks failed"))
+	case scenariosSkipped:
+		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("warning"), r.yellow("PARTIAL CHECK - scenario tests skipped"))
+	default:
+		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("check"), r.green("All checks passed!"))
 	}
+}
+
+// formatSkipReason formats the runner unavailable message for display.
+func formatSkipReason(msg string) string {
+	if strings.Contains(strings.ToLower(msg), "docker") {
+		return "Docker not running"
+	}
+
+	if msg == "" {
+		return "runner unavailable"
+	}
+
+	return msg
+}
+
+// pluralize returns the word with proper singular/plural form.
+func pluralize(n int, word string) string {
+	if n == 1 {
+		return fmt.Sprintf("%d %s", n, word)
+	}
+
+	return fmt.Sprintf("%d %ss", n, word)
 }
 
 // formatSeverity returns a colored severity indicator.
