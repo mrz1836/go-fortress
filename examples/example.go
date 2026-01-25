@@ -8,8 +8,17 @@ import (
 )
 
 func main() {
-	// Greet the user with a custom name
-	name := "Alice"
-	greeting := fortress.Greet(name)
-	log.Println(greeting)
+	// Fortify a message with fortress markers
+	message := "secret data"
+	fortified := fortress.Fortify(message)
+	log.Println(fortified)
+
+	// Guard input against forbidden values
+	forbidden := []string{"evil", "bad"}
+	result, err := fortress.Guard("hello world", forbidden)
+	if err != nil {
+		log.Println("Breach detected:", err)
+		return
+	}
+	log.Println("Safe input:", result)
 }
