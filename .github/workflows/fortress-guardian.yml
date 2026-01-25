@@ -63,15 +63,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# --------------------------------------------------------------------
-# Environment Variables
-# --------------------------------------------------------------------
-env:
-  # Tool versions (must match magefiles/magefile.go)
-  ACT_VERSION: "v0.2.84"
-  ACTIONLINT_VERSION: "v1.7.10"
-  MAGE_VERSION: "v1.15.0"
-
 jobs:
   # ----------------------------------------------------------------------------------
   # Load Environment Variables
@@ -151,12 +142,12 @@ jobs:
 
       - name: Install actionlint
         run: |
-          go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.ACTIONLINT_VERSION }}"
+          go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.GUARDIAN_ACTIONLINT_VERSION }}"
           actionlint --version
 
       - name: Install mage
         run: |
-          go install "github.com/magefile/mage@${{ env.MAGE_VERSION }}"
+          go install "github.com/magefile/mage@${{ env.MAGE_X_MAGE_VERSION }}"
           mage --version
 
       - name: Setup MAGE-X
@@ -219,12 +210,12 @@ jobs:
 
       - name: Install actionlint
         run: |
-          go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.ACTIONLINT_VERSION }}"
+          go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.GUARDIAN_ACTIONLINT_VERSION }}"
           actionlint --version
 
       - name: Install mage
         run: |
-          go install "github.com/magefile/mage@${{ env.MAGE_VERSION }}"
+          go install "github.com/magefile/mage@${{ env.MAGE_X_MAGE_VERSION }}"
           mage --version
 
       # Cache act binary for faster startup
@@ -233,18 +224,18 @@ jobs:
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ~/go/bin/act
-          key: act-${{ env.ACT_VERSION }}-linux-amd64
+          key: act-${{ env.GUARDIAN_ACT_VERSION }}-linux-amd64
 
       - name: Install act
         if: steps.cache-act.outputs.cache-hit != 'true'
         run: |
-          go install "github.com/nektos/act@${{ env.ACT_VERSION }}"
+          go install "github.com/nektos/act@${{ env.GUARDIAN_ACT_VERSION }}"
           act --version
 
       - name: Verify act installation
         if: steps.cache-act.outputs.cache-hit == 'true'
         run: |
-          ~/go/bin/act --version || go install "github.com/nektos/act@${{ env.ACT_VERSION }}"
+          ~/go/bin/act --version || go install "github.com/nektos/act@${{ env.GUARDIAN_ACT_VERSION }}"
 
       # Cache Docker images used by act
       - name: Cache Docker images
