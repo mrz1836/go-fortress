@@ -4,14 +4,25 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/magefile/mage/mg"
+
 	"github.com/mrz1836/go-fortress/guardian"
 	"github.com/mrz1836/go-fortress/guardian/reporter"
+)
+
+// Sentinel errors for CI commands.
+var (
+	errStaticValidationFailed = errors.New("static validation found errors")
+	errTestsFailed            = errors.New("tests failed")
+	errVerificationFailed     = errors.New("verification failed")
+	errNameRequired           = errors.New("name parameter is required: magex ci:scenario name=LINT-001")
+	errScenarioFailed         = errors.New("scenario failed")
 )
 
 // Ci is the namespace for CI testing commands.
@@ -20,10 +31,10 @@ type Ci mg.Namespace
 // Static runs static validation only (no Docker required).
 // Target execution time: < 2 seconds.
 func (Ci) Static(ctx context.Context) error {
-	fmt.Println("Running static validation...")
+	_, _ = fmt.Fprintln(os.Stdout, "Running static validation...")
 
 	cfg := guardian.LoadFromEnv()
-	g, err := guardian.New(cfg)
+	g, err := guardian.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("creating guardian: %w", err)
 	}
@@ -46,7 +57,7 @@ func (Ci) Static(ctx context.Context) error {
 	// Fail if there are errors
 	for _, f := range results.Findings {
 		if f.Severity == "error" {
-			return fmt.Errorf("static validation found errors")
+			return errStaticValidationFailed
 		}
 	}
 
@@ -57,10 +68,10 @@ func (Ci) Static(ctx context.Context) error {
 // Includes static validation plus fast failure scenarios.
 // Target execution time: < 60 seconds.
 func (Ci) Test(ctx context.Context) error {
-	fmt.Println("Running CI tests...")
+	_, _ = fmt.Fprintln(os.Stdout, "Running CI tests...")
 
 	cfg := guardian.LoadFromEnv()
-	g, err := guardian.New(cfg)
+	g, err := guardian.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("creating guardian: %w", err)
 	}
@@ -88,8 +99,8 @@ func (Ci) Test(ctx context.Context) error {
 
 	// Check for failures
 	if report.Summary.FailedScenarios > 0 || report.Summary.ErrorScenarios > 0 {
-		return fmt.Errorf("tests failed: %d failed, %d errors",
-			report.Summary.FailedScenarios, report.Summary.ErrorScenarios)
+		return fmt.Errorf("%w: %d failed, %d errors",
+			errTestsFailed, report.Summary.FailedScenarios, report.Summary.ErrorScenarios)
 	}
 
 	return nil
@@ -99,10 +110,10 @@ func (Ci) Test(ctx context.Context) error {
 // Includes all scenarios for pre-merge verification.
 // Target execution time: < 5 minutes.
 func (Ci) Verify(ctx context.Context) error {
-	fmt.Println("Running full CI verification...")
+	_, _ = fmt.Fprintln(os.Stdout, "Running full CI verification...")
 
 	cfg := guardian.LoadFromEnv()
-	g, err := guardian.New(cfg)
+	g, err := guardian.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("creating guardian: %w", err)
 	}
@@ -147,8 +158,8 @@ func (Ci) Verify(ctx context.Context) error {
 
 	// Check for failures
 	if report.Summary.FailedScenarios > 0 || report.Summary.ErrorScenarios > 0 {
-		return fmt.Errorf("verification failed: %d failed, %d errors",
-			report.Summary.FailedScenarios, report.Summary.ErrorScenarios)
+		return fmt.Errorf("%w: %d failed, %d errors",
+			errVerificationFailed, report.Summary.FailedScenarios, report.Summary.ErrorScenarios)
 	}
 
 	return nil
@@ -162,7 +173,7 @@ func (Ci) Scenario(ctx context.Context) error {
 
 	name := params["name"]
 	if name == "" {
-		return fmt.Errorf("name parameter is required: magex ci:scenario name=LINT-001")
+		return errNameRequired
 	}
 
 	cfg := guardian.LoadFromEnv()
@@ -175,7 +186,7 @@ func (Ci) Scenario(ctx context.Context) error {
 		cfg.KeepContainers = true
 	}
 
-	g, err := guardian.New(cfg)
+	g, err := guardian.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("creating guardian: %w", err)
 	}
@@ -185,7 +196,7 @@ func (Ci) Scenario(ctx context.Context) error {
 		KeepContainer: cfg.KeepContainers,
 	}
 
-	fmt.Printf("Running scenario %s...\n", name)
+	_, _ = fmt.Fprintf(os.Stdout, "Running scenario %s...\n", name)
 
 	result, err := g.RunScenario(ctx, name, opts)
 	if err != nil {
@@ -193,21 +204,24 @@ func (Ci) Scenario(ctx context.Context) error {
 	}
 
 	// Print result
-	fmt.Printf("\nScenario: %s\n", result.ScenarioID)
-	fmt.Printf("Status: %s\n", result.Status)
-	fmt.Printf("Duration: %s\n", result.Duration)
+	_, _ = fmt.Fprintf(os.Stdout, "\nScenario: %s\n", result.ScenarioID)
+	_, _ = fmt.Fprintf(os.Stdout, "Status: %s\n", result.Status)
+	_, _ = fmt.Fprintf(os.Stdout, "Duration: %s\n", result.Duration)
+
 	if result.Error != "" {
-		fmt.Printf("Error: %s\n", result.Error)
+		_, _ = fmt.Fprintf(os.Stdout, "Error: %s\n", result.Error)
 	}
+
 	if len(result.MatchedPatterns) > 0 {
-		fmt.Printf("Matched patterns: %v\n", result.MatchedPatterns)
+		_, _ = fmt.Fprintf(os.Stdout, "Matched patterns: %v\n", result.MatchedPatterns)
 	}
+
 	if len(result.MissingPatterns) > 0 {
-		fmt.Printf("Missing patterns: %v\n", result.MissingPatterns)
+		_, _ = fmt.Fprintf(os.Stdout, "Missing patterns: %v\n", result.MissingPatterns)
 	}
 
 	if result.Status != reporter.ResultPass {
-		return fmt.Errorf("scenario %s failed", name)
+		return fmt.Errorf("%w: %s", errScenarioFailed, name)
 	}
 
 	return nil
@@ -220,7 +234,7 @@ func (Ci) List(ctx context.Context) error {
 	params := parseArgs(args)
 
 	cfg := guardian.LoadFromEnv()
-	g, err := guardian.New(cfg)
+	g, err := guardian.New(ctx, cfg)
 	if err != nil {
 		return fmt.Errorf("creating guardian: %w", err)
 	}
@@ -234,22 +248,22 @@ func (Ci) List(ctx context.Context) error {
 		return fmt.Errorf("listing scenarios: %w", err)
 	}
 
-	// Group by category
-	byCategory := make(map[string][]string)
+	// Convert to list items for terminal reporter
+	items := make([]reporter.ScenarioListItem, 0, len(scenarios))
 	for _, s := range scenarios {
-		byCategory[s.Category] = append(byCategory[s.Category],
-			fmt.Sprintf("  %s - %s", s.ID, s.Description))
+		items = append(items, reporter.ScenarioListItem{
+			ID:             s.ID,
+			Category:       s.Category,
+			Description:    s.Description,
+			ExpectedStatus: s.ExpectedStatus,
+			Tags:           s.Tags,
+			Disabled:       s.Disabled,
+		})
 	}
 
-	fmt.Printf("Available CI Scenarios (%d total)\n\n", len(scenarios))
-
-	for category, items := range byCategory {
-		fmt.Printf("%s (%d):\n", category, len(items))
-		for _, item := range items {
-			fmt.Println(item)
-		}
-		fmt.Println()
-	}
+	// Use formatted terminal output
+	termReporter := reporter.NewTerminalReporter()
+	termReporter.WriteScenarioList(os.Stdout, items, params["filter"])
 
 	return nil
 }
