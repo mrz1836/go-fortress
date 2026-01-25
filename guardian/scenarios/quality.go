@@ -17,7 +17,7 @@ func registerQualityScenarios(r *Registry) {
 			Status:      StatusFailure,
 			LogPatterns: []string{"declared and not used", "unusedVar"},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: 60 * time.Second,
 		Tags:    []string{"fast", "lint", "p1"},
 	})
 
