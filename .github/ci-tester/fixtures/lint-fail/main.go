@@ -15,7 +15,7 @@ func main() {
 }
 
 // badlyFormatted function has formatting issues (no space after func name for gofmt)
-func badlyFormatted()string{return"bad"}
+func badlyFormatted() string { return "bad" }
 
 // UnusedFunction is never called - triggers staticcheck
 func UnusedFunction() {

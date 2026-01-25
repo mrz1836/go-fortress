@@ -1,0 +1,18 @@
+
+[GUARDIAN] Guardian Report static
+--------------------------------------------------
+
+[WARN] Static Validation: WARNINGS (2 findings)
+
+  .github/workflows/dangerous.yml:
+    .github/workflows/dangerous.yml:1:0 [ERROR] pull_request_target with write permissions is dangerous
+      Suggestion: Use pull_request event instead, or ensure no untrusted code is checked out
+    .github/workflows/dangerous.yml:25:0 [ERROR] potential secret logging detected
+      Suggestion: Do not log secrets; use add-mask for dynamic values
+
+--------------------------------------------------
+Summary:
+  Duration: 0.9s
+  Findings: 2 total (2 errors)
+
+[FAIL] Some checks failed

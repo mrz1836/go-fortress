@@ -1,81 +1,81 @@
 {
-  "action": "opened",
-  "number": 1,
-  "pull_request": {
-    "url": "https://api.github.com/repos/test-owner/test-repo/pulls/1",
-    "id": 1,
-    "node_id": "PR_test",
+    "action": "opened",
     "number": 1,
-    "state": "open",
-    "title": "Test PR from fork",
-    "body": "This is a test PR from a forked repository",
-    "head": {
-      "label": "fork-owner:feature-branch",
-      "ref": "feature-branch",
-      "sha": "abc123def456789012345678901234567890abcd",
-      "user": {
-        "login": "fork-owner",
-        "id": 100,
-        "type": "User"
-      },
-      "repo": {
-        "id": 2,
-        "node_id": "R_fork",
-        "name": "test-repo",
-        "full_name": "fork-owner/test-repo",
-        "private": false,
-        "fork": true,
-        "owner": {
-          "login": "fork-owner",
-          "id": 100,
-          "type": "User"
-        }
-      }
+    "pull_request": {
+        "author_association": "FIRST_TIME_CONTRIBUTOR",
+        "base": {
+            "label": "test-owner:main",
+            "ref": "main",
+            "repo": {
+                "fork": false,
+                "full_name": "test-owner/test-repo",
+                "id": 1,
+                "name": "test-repo",
+                "node_id": "R_test",
+                "owner": {
+                    "id": 1,
+                    "login": "test-owner",
+                    "type": "User"
+                },
+                "private": false
+            },
+            "sha": "def456789012345678901234567890abcdef1234",
+            "user": {
+                "id": 1,
+                "login": "test-owner",
+                "type": "User"
+            }
+        },
+        "body": "This is a test PR from a forked repository",
+        "head": {
+            "label": "fork-owner:feature-branch",
+            "ref": "feature-branch",
+            "repo": {
+                "fork": true,
+                "full_name": "fork-owner/test-repo",
+                "id": 2,
+                "name": "test-repo",
+                "node_id": "R_fork",
+                "owner": {
+                    "id": 100,
+                    "login": "fork-owner",
+                    "type": "User"
+                },
+                "private": false
+            },
+            "sha": "abc123def456789012345678901234567890abcd",
+            "user": {
+                "id": 100,
+                "login": "fork-owner",
+                "type": "User"
+            }
+        },
+        "id": 1,
+        "node_id": "PR_test",
+        "number": 1,
+        "state": "open",
+        "title": "Test PR from fork",
+        "url": "https://api.github.com/repos/test-owner/test-repo/pulls/1"
     },
-    "base": {
-      "label": "test-owner:main",
-      "ref": "main",
-      "sha": "def456789012345678901234567890abcdef1234",
-      "user": {
-        "login": "test-owner",
-        "id": 1,
-        "type": "User"
-      },
-      "repo": {
-        "id": 1,
-        "node_id": "R_test",
-        "name": "test-repo",
+    "repository": {
+        "clone_url": "https://github.com/test-owner/test-repo.git",
         "full_name": "test-owner/test-repo",
-        "private": false,
-        "fork": false,
+        "html_url": "https://github.com/test-owner/test-repo",
+        "id": 1,
+        "name": "test-repo",
+        "node_id": "R_test",
         "owner": {
-          "login": "test-owner",
-          "id": 1,
-          "type": "User"
-        }
-      }
+            "avatar_url": "https://avatars.githubusercontent.com/u/1",
+            "id": 1,
+            "login": "test-owner",
+            "node_id": "U_test",
+            "type": "User"
+        },
+        "private": false
     },
-    "author_association": "FIRST_TIME_CONTRIBUTOR"
-  },
-  "repository": {
-    "id": 1,
-    "node_id": "R_test",
-    "name": "test-repo",
-    "full_name": "test-owner/test-repo",
-    "private": false,
-    "owner": {
-      "login": "test-owner",
-      "id": 1,
-      "node_id": "U_test",
-      "avatar_url": "https://avatars.githubusercontent.com/u/1",
-      "type": "User"
-    },
-    "html_url": "https://github.com/test-owner/test-repo",
-    "clone_url": "https://github.com/test-owner/test-repo.git"
-  },
-  "sender": {
-    "login": "fork-owner",
-    "id": 100,
-    "type": "User"
-  }
+    "sender": {
+        "id": 100,
+        "login": "fork-owner",
+        "type": "User"
+    }
 }

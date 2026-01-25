@@ -1,0 +1,53 @@
+
+[GUARDIAN] Available CI Scenarios (37 total)
+--------------------------------------------------
+
+Quality (12):
+  [FAIL] LINT-001 - Unused variable detection [fast, p1]
+  [FAIL] LINT-002 - Gofmt formatting violation [p1]
+  [FAIL] LINT-003 - golangci-lint rule violation [p1]
+  [FAIL] LINT-004 - staticcheck violations [p2]
+  [FAIL] TEST-001 - Failing unit test assertion [fast, p1]
+  [FAIL] TEST-002 - Test panic (nil pointer) [p1]
+  [FAIL] TEST-003 - Test timeout exceeded [p2]
+  [FAIL] RACE-001 - Data race detection [p1]
+  [FAIL] COV-001 - Low coverage threshold [p1]
+  [PASS] COV-002 - Coverage threshold met [p2]
+  [FAIL] BENCH-001 - Benchmark execution [p2]
+  [FAIL] FUZZ-001 - Fuzz testing [p2]
+
+Security (6):
+  [FAIL] SEC-001 - Hardcoded AWS key pattern [fast, p1, security]
+  [FAIL] SEC-002 - Private key in repository [p1, security]
+  [FAIL] SEC-003 - govulncheck findings [p2, security]
+  [FAIL] VULN-001 - Vulnerable dependency [p1, security]
+  [FAIL] VULN-002 - nancy CVE detection [p2, security]
+  [FAIL] GITLEAKS-001 - Gitleaks integration [p2, security]
+
+Fork Safety (3):
+  [PASS] FORK-001 - Fork detection mechanism validation [p2]
+  [PASS] FORK-002 - Secret protection on fork PRs [p2]
+  [PASS] FORK-003 - Job skipping for fork PRs [p2]
+
+Config (7):
+  [PASS] MATRIX-001 - Matrix expansion validation [p2]
+  [PASS] ENV-001 - .env.base schema validation [p2]
+  [PASS] CACHE-001 - Cache hit mode [p2]
+  [FAIL] CACHE-002 - Cache miss mode [p2]
+  [FAIL] WORKFLOW-001 - Invalid workflow YAML syntax [p2]
+  [FAIL] WORKFLOW-002 - Deprecated runner labels detection [p2]
+  [FAIL] ACTION-001 - Unpinned action static detection [p2]
+
+Supply Chain (4):
+  [PASS] SLSA-001 - Provenance attestation present [p3]
+  [PASS] SLSA-002 - Build isolation settings [p3]
+  [PASS] SLSA-003 - Dependencies pinned to digests [p3]
+  [PASS] SBOM-001 - SPDX/CycloneDX format compliance [p3]
+
+Pass (2):
+  [PASS] PASS-001 - Clean code passes all checks [p2]
+  [PASS] PASS-002 - Full CI pipeline passes [p2]
+
+--------------------------------------------------
+Run a specific scenario: magex ci:scenario name=<ID>
+Filter by category:      magex ci:list filter=<category>

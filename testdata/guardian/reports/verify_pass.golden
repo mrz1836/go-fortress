@@ -1,0 +1,26 @@
+
+[GUARDIAN] Guardian Report verify
+--------------------------------------------------
+
+[OK] Static Validation: PASSED (1500ms)
+
+[OK] Scenarios: PASSED (35/35 passed)
+
+  [OK] LINT-001 PASS (4.5s)
+  [OK] LINT-002 PASS (3.8s)
+  [OK] LINT-003 PASS (4.2s)
+  [OK] TEST-001 PASS (6.8s)
+  [OK] TEST-002 PASS (5.2s)
+  [OK] RACE-001 PASS (8.1s)
+  [OK] SEC-001 PASS (3.4s)
+  [OK] SEC-002 PASS (3.1s)
+  [OK] VULN-001 PASS (4.5s)
+  [OK] COV-001 PASS (5.8s)
+
+--------------------------------------------------
+Summary:
+  Duration: 2m35.4s
+  Findings: 0 total
+  Scenarios: 35 passed, 0 failed, 0 skipped, 0 errors
+
+[OK] All checks passed!

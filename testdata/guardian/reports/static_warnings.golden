@@ -1,0 +1,22 @@
+
+[GUARDIAN] Guardian Report static
+--------------------------------------------------
+
+[WARN] Static Validation: WARNINGS (3 findings)
+
+  .github/workflows/ci.yml:
+    .github/workflows/ci.yml:1:0 [WARN] workflow does not declare explicit permissions
+      Suggestion: Add 'permissions: {}' at workflow or job level to restrict GITHUB_TOKEN
+    .github/workflows/ci.yml:1:0 [WARN] workflow does not define concurrency group
+      Suggestion: Add concurrency group to cancel outdated runs: concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true }
+
+  .github/workflows/release.yml:
+    .github/workflows/release.yml:15:0 [WARN] action is not pinned to a full commit SHA
+      Suggestion: Pin to a full 40-character SHA, e.g., actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+--------------------------------------------------
+Summary:
+  Duration: 1.8s
+  Findings: 3 total (3 warnings)
+
+[OK] All checks passed!

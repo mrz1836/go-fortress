@@ -1,0 +1,23 @@
+
+[GUARDIAN] Guardian Report verify
+--------------------------------------------------
+
+[OK] Static Validation: PASSED (1500ms)
+
+[FAIL] Scenarios: FAILED (33/35 passed)
+
+  [OK] LINT-001 PASS (4.5s)
+  [OK] LINT-002 PASS (3.8s)
+  [FAIL] LINT-003 fail (4.2s)
+      Missing: ["expected lint error"]
+  [OK] TEST-001 PASS (6.8s)
+  [FAIL] SEC-001 fail (3.4s)
+      Error: unexpected success
+
+--------------------------------------------------
+Summary:
+  Duration: 2m12.8s
+  Findings: 0 total
+  Scenarios: 33 passed, 2 failed, 0 skipped, 0 errors
+
+[FAIL] Some checks failed
