@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Check fork status
+        run: |
+          if [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+            echo "fork detected: true"
+            echo "is_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "fork detected: false"
+            echo "is_fork=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Run tests
+        run: go run main.go
+
+  secrets-test:
+    name: Secrets Test
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.fork != true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secret access
+        run: |
+          if [ -z "${{ secrets.TEST_SECRET }}" ]; then
+            echo "skipping: fork has no secret access"
+          else
+            echo "secret available"
+          fi
+
+  fork-unsafe:
+    name: Fork Unsafe Job
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.fork != true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip on fork
+        run: |
+          echo "skipping for fork PR"
+          echo "This job requires secrets"

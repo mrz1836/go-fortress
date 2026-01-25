@@ -1,0 +1,14 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run test
+        run: echo "Running on deprecated ubuntu-18.04 runner"
