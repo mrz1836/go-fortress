@@ -398,8 +398,8 @@ jobs:
               echo "## 🧪 Scenario Results"
               echo ""
 
-              # Count results
-              TOTAL=$(wc -l < "$JSONL_FILE" | tr -d ' ')
+              # Count results (only scenario events, not metadata like run_start/run_end)
+              TOTAL=$(grep -c '"type":"scenario"' "$JSONL_FILE" 2>/dev/null || echo "0")
               PASSED=$(grep -c '"status":"pass"' "$JSONL_FILE" 2>/dev/null || echo "0")
               FAILED=$(grep -c '"status":"fail"' "$JSONL_FILE" 2>/dev/null || echo "0")
               ERRORS=$(grep -c '"status":"error"' "$JSONL_FILE" 2>/dev/null || echo "0")
@@ -430,8 +430,8 @@ jobs:
               echo "| Scenario | Category | Status | Duration | Details |"
               echo "|----------|----------|--------|----------|---------|"
 
-              # Parse each line of the JSONL file
-              while IFS= read -r line; do
+              # Parse only scenario events from the JSONL file (skip run_start, static_complete, run_end)
+              grep '"type":"scenario"' "$JSONL_FILE" | while IFS= read -r line; do
                 SCENARIO_ID=$(echo "$line" | jq -r '.id // "unknown"')
                 STATUS=$(echo "$line" | jq -r '.status // "unknown"')
                 DURATION=$(echo "$line" | jq -r '.duration_ms // "N/A"')
@@ -493,7 +493,7 @@ jobs:
                 fi
 
                 echo "| $SCENARIO_ID | $CATEGORY | $STATUS_ICON $STATUS | $DURATION_DISPLAY | $DETAILS |"
-              done < "$JSONL_FILE"
+              done
 
               echo ""
 
@@ -505,7 +505,7 @@ jobs:
                 echo ""
 
                 grep -E '"status":"(fail|error)"' "$JSONL_FILE" | while IFS= read -r line; do
-                  SCENARIO_ID=$(echo "$line" | jq -r '.scenario_id // "unknown"')
+                  SCENARIO_ID=$(echo "$line" | jq -r '.id // "unknown"')
                   STATUS=$(echo "$line" | jq -r '.status // "unknown"')
                   ERROR=$(echo "$line" | jq -r '.error // "No error message"')
                   MISSING=$(echo "$line" | jq -r '.missing_patterns // []')
