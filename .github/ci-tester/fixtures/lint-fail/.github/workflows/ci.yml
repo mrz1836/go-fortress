@@ -19,11 +19,11 @@ jobs:
         with:
           go-version: "1.24"
       - name: Run go vet
-        run: go vet ./...
-      - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
+        run: |
+          echo "Running govet..."
+          go vet ./...
+      - name: Run go build
+        run: go build ./...
 
   format:
     name: Format Check
@@ -36,10 +36,28 @@ jobs:
       - name: Check formatting
         run: |
           if [ -n "$(gofmt -l .)" ]; then
-            echo "Files are not formatted:"
+            echo "File is not properly formatted:"
             gofmt -l .
             exit 1
           fi
+
+  golangci-lint:
+    name: Golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Install golangci-lint
+        run: |
+          echo "Installing golangci-lint..."
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.0
+      - name: Run golangci-lint
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          echo "Running golangci-lint..."
+          golangci-lint run ./... || echo "golangci-lint found issues"
 
   staticcheck:
     name: Staticcheck
@@ -52,4 +70,6 @@ jobs:
       - name: Install staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
       - name: Run staticcheck
-        run: staticcheck ./...
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          staticcheck ./...

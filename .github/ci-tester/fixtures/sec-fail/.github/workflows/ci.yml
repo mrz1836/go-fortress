@@ -17,10 +17,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz | tar xz
+          chmod +x gitleaks
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gitleaks detect --source . --no-git --verbose
 
   secrets-scan:
     name: Secrets Scan
@@ -31,10 +33,12 @@ jobs:
           fetch-depth: 0
       - name: Install gitleaks
         run: |
-          curl -sSL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.18.0_linux_x64.tar.gz | tar xz
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz | tar xz
           chmod +x gitleaks
       - name: Run gitleaks manually
-        run: ./gitleaks detect --source . --verbose
+        run: |
+          echo "Scanning for private key and secrets..."
+          ./gitleaks detect --source . --no-git --verbose
 
   gitleaks:
     name: Gitleaks
@@ -43,10 +47,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Run gitleaks action
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz | tar xz
+          chmod +x gitleaks
+      - name: Run gitleaks
+        run: ./gitleaks detect --source . --no-git --verbose
 
   gitleaks-custom:
     name: Gitleaks Custom Patterns
@@ -57,7 +63,7 @@ jobs:
           fetch-depth: 0
       - name: Install gitleaks
         run: |
-          curl -sSL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_8.18.0_linux_x64.tar.gz | tar xz
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz | tar xz
           chmod +x gitleaks
       - name: Create custom config
         run: |
@@ -70,4 +76,4 @@ jobs:
           tags = ["custom", "api-key"]
           EOF
       - name: Run gitleaks with custom patterns
-        run: ./gitleaks detect --source . --config .gitleaks-custom.toml --verbose
+        run: ./gitleaks detect --source . --config .gitleaks-custom.toml --no-git --verbose
