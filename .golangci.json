@@ -13,7 +13,8 @@
                 ".vscode",
                 "dist",
                 "third_party$",
-                "builtin$"
+                "builtin$",
+                ".github/ci-tester/fixtures/"
             ]
         },
         "settings": {
@@ -46,6 +47,11 @@
             "godot",
             "wsl_v5"
         ],
+        "exclusions": {
+            "paths": [
+                ".github/ci-tester/fixtures/"
+            ]
+        },
         "enable": [
             "asasalint",
             "arangolint",
