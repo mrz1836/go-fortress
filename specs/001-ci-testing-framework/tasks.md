@@ -188,7 +188,7 @@ Based on plan.md structure:
 
 ### Implementation for User Story 5
 
-- [ ] T074 [US5] Implement policy severity escalation (warnings to errors for specific rules) in guardian/policy/engine.go
+- [X] T074 [US5] Implement policy severity escalation (warnings to errors for specific rules) in guardian/policy/engine.go
 - [X] T075 [US5] Add pull_request_target with write permissions detection in guardian/policy/rules.go (detailed check)
 - [X] T076 [US5] Add secret logging pattern detection in guardian/policy/rules.go (comprehensive patterns)
 - [X] T077 [US5] Implement minimal-permissions policy rule in guardian/policy/rules.go
@@ -213,7 +213,7 @@ Based on plan.md structure:
 - [X] T081 [P] [US6] Define SLSA-002 scenario (build isolation settings) in guardian/scenarios/supply_chain.go
 - [X] T082 [P] [US6] Define SLSA-003 scenario (dependencies pinned to digests) in guardian/scenarios/supply_chain.go
 - [X] T083 [US6] Define SBOM-001 scenario (SPDX/CycloneDX format compliance) in guardian/scenarios/supply_chain.go
-- [ ] T084 [US6] Implement supply chain validation logic in guardian/validator/supply_chain.go
+- [X] T084 [US6] Implement supply chain validation logic in guardian/validator/supply_chain.go
 
 **Checkpoint**: User Story 6 complete - Supply chain compliance can be validated
 
@@ -233,7 +233,7 @@ Based on plan.md structure:
 - [X] T086 [US7] Add category filtering to ListScenarios in guardian/guardian.go
 - [X] T087 [US7] Add tag filtering to ListScenarios in guardian/guardian.go
 - [X] T088 [US7] Implement ci:list MAGE-X command in magefiles/ci.go with filter parameter
-- [ ] T089 [US7] Implement formatted scenario list output in guardian/reporter/terminal.go
+- [X] T089 [US7] Implement formatted scenario list output in guardian/reporter/terminal.go
 
 **Checkpoint**: User Story 7 complete - `magex ci:list` displays all scenarios with filtering
 
@@ -303,14 +303,14 @@ Based on plan.md structure:
 **Purpose**: Improvements affecting multiple components
 
 - [X] T104 Implement graceful degradation when Docker is unavailable in guardian/guardian.go
-- [ ] T105 Add disk space check before scenario execution in guardian/runner/act.go
-- [ ] T106 Implement retry with exponential backoff for image pulls in guardian/runner/act.go
+- [X] T105 Add disk space check before scenario execution in guardian/runner/act.go
+- [X] T106 Implement retry with exponential backoff for image pulls in guardian/runner/act.go
 - [X] T107 [P] Add CI environment detection (GITHUB_ACTIONS) in guardian/reporter/reporter.go
-- [ ] T108 [P] Create testdata/guardian/reports/ with expected golden files for reporter tests
-- [ ] T109 Create guardian/README.md documenting package overview, installation, usage, API reference
-- [ ] T110 Update deps:install MAGE-X target to install act and actionlint with pinned versions
-- [ ] T111 Run quickstart.md validation - verify all documented commands work
-- [ ] T112 Performance validation - ensure ci:static < 2s, ci:test < 60s, ci:verify < 5m
+- [X] T108 [P] Create testdata/guardian/reports/ with expected golden files for reporter tests
+- [X] T109 Create guardian/README.md documenting package overview, installation, usage, API reference
+- [X] T110 Update deps:install MAGE-X target to install act and actionlint with pinned versions
+- [X] T111 Run quickstart.md validation - verify all documented commands work
+- [X] T112 Performance validation - ensure ci:static < 2s, ci:test < 60s, ci:verify < 5m
 
 **Quality Gate**: Final `go-pre-commit --all-files && magex format:fix && magex lint`
 
