@@ -1,0 +1,330 @@
+# ------------------------------------------------------------------------------------
+#  Cache Act Docker Images Composite Action (GoFortress)
+#
+#  Purpose: Cache act Docker images (catthehacker/ubuntu:act-latest and act-22.04)
+#  to accelerate Guardian scenario execution. Uses gzip compression for efficient
+#  storage and version-pinned cache keys for proper invalidation.
+#
+#  Features:
+#    - Caches both act-latest and act-22.04 images together
+#    - Gzip compression for ~60% storage reduction
+#    - Version-pinned cache keys tied to act version from .env.base
+#    - Cross-platform support via runner.os
+#    - Performance tracking and metrics
+#    - Automatic fallback to Docker Hub on cache miss
+#
+#  Usage:
+#    - uses: ./.github/actions/cache-act-images
+#      with:
+#        act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+#
+#  Maintainer: @mrz1836
+#
+# ------------------------------------------------------------------------------------
+
+name: "Cache Act Docker Images"
+description: "Cache act Docker images for faster Guardian scenario execution with compression and version-pinned keys"
+
+inputs:
+  act-version:
+    description: "Act version for cache key (e.g., v0.2.84) - sourced from GUARDIAN_ACT_VERSION in .env.base"
+    required: true
+  cache-mode:
+    description: "Cache operation mode: restore, save, restore-save"
+    required: false
+    default: "restore-save"
+
+outputs:
+  cache-hit:
+    description: "Whether images were restored from cache (true/false)"
+    value: ${{ steps.restore-cache.outputs.cache-hit }}
+  images-loaded:
+    description: "Comma-separated list of images that were loaded"
+    value: ${{ steps.load-images.outputs.images-loaded }}
+  images-pulled:
+    description: "Comma-separated list of images that were pulled"
+    value: ${{ steps.pull-images.outputs.images-pulled }}
+  cache-size-mb:
+    description: "Size of cache file in MB"
+    value: ${{ steps.save-images.outputs.cache-size-mb }}
+  operation-time:
+    description: "Total operation time in seconds"
+    value: ${{ steps.operation-summary.outputs.operation-time }}
+  cache-key:
+    description: "Cache key used for Docker images"
+    value: ${{ steps.cache-config.outputs.cache-key }}
+
+runs:
+  using: "composite"
+  steps:
+    # --------------------------------------------------------------------
+    # Initialize operation tracking
+    # --------------------------------------------------------------------
+    - name: ⏱️ Initialize operation tracking
+      id: operation-start
+      shell: bash
+      run: |
+        echo "🐳 Starting act Docker image caching operation..."
+        OPERATION_START=$(date +%s)
+        echo "operation-start=$OPERATION_START" >> $GITHUB_OUTPUT
+        echo "📋 Configuration:"
+        echo "   • Act Version: ${{ inputs.act-version }}"
+        echo "   • Cache Mode: ${{ inputs.cache-mode }}"
+        echo "   • Runner OS: ${{ runner.os }}"
+
+    # --------------------------------------------------------------------
+    # Configure cache settings
+    # --------------------------------------------------------------------
+    - name: 🔧 Configure cache settings
+      id: cache-config
+      shell: bash
+      run: |
+        echo "🔧 Configuring act image cache settings..."
+
+        # Define images to cache
+        IMAGES="catthehacker/ubuntu:act-latest,catthehacker/ubuntu:act-22.04"
+
+        # Create cache key with act version for invalidation (sourced from .env.base)
+        CACHE_KEY="act-images-${{ runner.os }}-${{ inputs.act-version }}"
+
+        # Define cache paths
+        CACHE_DIR="/tmp/act-images"
+        CACHE_FILE="act-images.tar.gz"
+        CACHE_PATH="${CACHE_DIR}/${CACHE_FILE}"
+
+        echo "📋 Cache Configuration:"
+        echo "   • Images: $IMAGES"
+        echo "   • Cache Key: $CACHE_KEY"
+        echo "   • Cache Path: $CACHE_PATH"
+
+        # Create cache directory
+        mkdir -p "$CACHE_DIR"
+
+        # Set outputs
+        echo "images=$IMAGES" >> $GITHUB_OUTPUT
+        echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "cache-dir=$CACHE_DIR" >> $GITHUB_OUTPUT
+        echo "cache-file=$CACHE_FILE" >> $GITHUB_OUTPUT
+        echo "cache-path=$CACHE_PATH" >> $GITHUB_OUTPUT
+
+    # --------------------------------------------------------------------
+    # Restore Docker images from cache
+    # --------------------------------------------------------------------
+    - name: 💾 Restore act images from cache
+      if: contains(inputs.cache-mode, 'restore')
+      id: restore-cache
+      uses: actions/cache/restore@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+      with:
+        path: ${{ steps.cache-config.outputs.cache-path }}
+        key: ${{ steps.cache-config.outputs.cache-key }}
+
+    # --------------------------------------------------------------------
+    # Load cached images into Docker
+    # --------------------------------------------------------------------
+    - name: 📦 Load cached images
+      if: contains(inputs.cache-mode, 'restore') && steps.restore-cache.outputs.cache-hit == 'true'
+      id: load-images
+      shell: bash
+      run: |
+        echo "📦 Loading act images from cache..."
+        CACHE_PATH="${{ steps.cache-config.outputs.cache-path }}"
+        LOADED_IMAGES=""
+
+        if [ -f "$CACHE_PATH" ]; then
+          echo "✅ Cache file found: $CACHE_PATH"
+          FILE_SIZE=$(du -h "$CACHE_PATH" | cut -f1)
+          echo "📊 Cache file size: $FILE_SIZE"
+
+          # Decompress and load images
+          if gunzip -c "$CACHE_PATH" | docker load; then
+            echo "✅ Docker images loaded successfully"
+
+            # Verify which images are now available
+            for img in catthehacker/ubuntu:act-latest catthehacker/ubuntu:act-22.04; do
+              if docker image inspect "$img" >/dev/null 2>&1; then
+                echo "✅ $img available"
+                if [ -n "$LOADED_IMAGES" ]; then
+                  LOADED_IMAGES="${LOADED_IMAGES},$img"
+                else
+                  LOADED_IMAGES="$img"
+                fi
+              fi
+            done
+
+            echo "images-loaded=$LOADED_IMAGES" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Failed to load images from cache"
+            echo "images-loaded=" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "❌ Cache file not found: $CACHE_PATH"
+          echo "images-loaded=" >> $GITHUB_OUTPUT
+        fi
+
+    # --------------------------------------------------------------------
+    # Pull images from Docker Hub if not cached
+    # --------------------------------------------------------------------
+    - name: 📥 Pull act images from Docker Hub
+      if: contains(inputs.cache-mode, 'restore') && steps.restore-cache.outputs.cache-hit != 'true'
+      id: pull-images
+      shell: bash
+      run: |
+        echo "📥 Pulling act images from Docker Hub..."
+        PULLED_IMAGES=""
+        PULL_FAILED=false
+
+        for img in catthehacker/ubuntu:act-latest catthehacker/ubuntu:act-22.04; do
+          echo "🔍 Pulling: $img"
+          if docker pull "$img"; then
+            echo "✅ Pulled: $img"
+            if [ -n "$PULLED_IMAGES" ]; then
+              PULLED_IMAGES="${PULLED_IMAGES},$img"
+            else
+              PULLED_IMAGES="$img"
+            fi
+          else
+            echo "⚠️ Failed to pull: $img (continuing with remaining images)"
+            PULL_FAILED=true
+          fi
+        done
+
+        echo "images-pulled=$PULLED_IMAGES" >> $GITHUB_OUTPUT
+
+        if [ -z "$PULLED_IMAGES" ]; then
+          echo "❌ No images were pulled successfully"
+          exit 1
+        fi
+
+        if [ "$PULL_FAILED" = true ]; then
+          echo "⚠️ Some images failed to pull, but continuing with available images"
+        fi
+
+    # --------------------------------------------------------------------
+    # Save images to cache file
+    # --------------------------------------------------------------------
+    - name: 💾 Save images to cache file
+      if: contains(inputs.cache-mode, 'save') && steps.restore-cache.outputs.cache-hit != 'true'
+      id: save-images
+      shell: bash
+      run: |
+        echo "💾 Saving act images to cache..."
+        CACHE_PATH="${{ steps.cache-config.outputs.cache-path }}"
+
+        # Get list of available images
+        IMAGES_TO_SAVE=""
+        for img in catthehacker/ubuntu:act-latest catthehacker/ubuntu:act-22.04; do
+          if docker image inspect "$img" >/dev/null 2>&1; then
+            if [ -n "$IMAGES_TO_SAVE" ]; then
+              IMAGES_TO_SAVE="${IMAGES_TO_SAVE} $img"
+            else
+              IMAGES_TO_SAVE="$img"
+            fi
+          fi
+        done
+
+        if [ -z "$IMAGES_TO_SAVE" ]; then
+          echo "❌ No images available to save"
+          exit 1
+        fi
+
+        echo "📋 Saving images: $IMAGES_TO_SAVE"
+
+        # Save images with gzip compression
+        if docker save $IMAGES_TO_SAVE | gzip > "$CACHE_PATH"; then
+          echo "✅ Images saved successfully"
+
+          # Get file size
+          FILE_SIZE_BYTES=$(stat -c%s "$CACHE_PATH" 2>/dev/null || stat -f%z "$CACHE_PATH" 2>/dev/null || echo "0")
+          FILE_SIZE_MB=$((FILE_SIZE_BYTES / 1024 / 1024))
+
+          echo "📊 Cache file size: ${FILE_SIZE_MB}MB"
+          echo "cache-size-mb=$FILE_SIZE_MB" >> $GITHUB_OUTPUT
+          echo "images-saved=true" >> $GITHUB_OUTPUT
+        else
+          echo "❌ Failed to save images"
+          echo "images-saved=false" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+
+    # --------------------------------------------------------------------
+    # Save cache using actions/cache
+    # --------------------------------------------------------------------
+    - name: 🗄️ Upload images to cache
+      if: contains(inputs.cache-mode, 'save') && steps.save-images.outputs.images-saved == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+      with:
+        path: ${{ steps.cache-config.outputs.cache-path }}
+        key: ${{ steps.cache-config.outputs.cache-key }}
+
+    # --------------------------------------------------------------------
+    # Verify images are available
+    # --------------------------------------------------------------------
+    - name: 🔍 Verify image availability
+      id: verify-images
+      shell: bash
+      run: |
+        echo "🔍 Verifying act image availability..."
+        AVAILABLE_IMAGES=""
+        MISSING_IMAGES=""
+
+        for img in catthehacker/ubuntu:act-latest catthehacker/ubuntu:act-22.04; do
+          if docker image inspect "$img" >/dev/null 2>&1; then
+            SIZE=$(docker image inspect "$img" --format='{{.Size}}' | awk '{printf "%.1f", $1/1024/1024}')
+            echo "✅ $img (${SIZE}MB)"
+            if [ -n "$AVAILABLE_IMAGES" ]; then
+              AVAILABLE_IMAGES="${AVAILABLE_IMAGES},$img"
+            else
+              AVAILABLE_IMAGES="$img"
+            fi
+          else
+            echo "❌ $img (not found)"
+            if [ -n "$MISSING_IMAGES" ]; then
+              MISSING_IMAGES="${MISSING_IMAGES},$img"
+            else
+              MISSING_IMAGES="$img"
+            fi
+          fi
+        done
+
+        echo "available-images=$AVAILABLE_IMAGES" >> $GITHUB_OUTPUT
+        echo "missing-images=$MISSING_IMAGES" >> $GITHUB_OUTPUT
+
+        if [ -n "$MISSING_IMAGES" ]; then
+          echo "⚠️ Some images are missing: $MISSING_IMAGES"
+        fi
+
+    # --------------------------------------------------------------------
+    # Operation summary
+    # --------------------------------------------------------------------
+    - name: ✅ Operation summary
+      id: operation-summary
+      shell: bash
+      run: |
+        echo "✅ Act image caching operation completed"
+
+        # Calculate operation time
+        OPERATION_START="${{ steps.operation-start.outputs.operation-start }}"
+        OPERATION_END=$(date +%s)
+        OPERATION_TIME=$((OPERATION_END - OPERATION_START))
+
+        # Determine operation status
+        CACHE_HIT="${{ steps.restore-cache.outputs.cache-hit || 'false' }}"
+        LOADED="${{ steps.load-images.outputs.images-loaded || '' }}"
+        PULLED="${{ steps.pull-images.outputs.images-pulled || '' }}"
+        AVAILABLE="${{ steps.verify-images.outputs.available-images }}"
+
+        echo "📊 Operation Summary:"
+        echo "   • Cache Hit: $CACHE_HIT"
+        echo "   • Images Loaded: ${LOADED:-none}"
+        echo "   • Images Pulled: ${PULLED:-none}"
+        echo "   • Available Images: $AVAILABLE"
+        echo "   • Operation Time: ${OPERATION_TIME}s"
+        echo "   • Cache Key: ${{ steps.cache-config.outputs.cache-key }}"
+
+        echo "operation-time=$OPERATION_TIME" >> $GITHUB_OUTPUT
+
+        if [[ "$CACHE_HIT" == "true" ]]; then
+          echo "🚀 Act images restored from cache in ${OPERATION_TIME}s"
+        else
+          echo "📥 Act images pulled and cached in ${OPERATION_TIME}s"
+        fi

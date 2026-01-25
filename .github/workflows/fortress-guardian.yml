@@ -12,6 +12,13 @@
 #    - static: Fast static validation (< 2s, no Docker required)
 #    - guardian-scenarios: Full scenario execution with Docker + Redis
 #
+#  Performance Optimizations:
+#    - Unified tool caching (actionlint, mage, act) with version-pinned keys
+#    - Docker image caching with gzip compression (act-latest + act-22.04)
+#    - Redis image caching via cache-redis-image action
+#    - Sparse checkout for minimal clone overhead
+#    - Cache sharing between static and guardian-scenarios jobs
+#
 #  Security:
 #    - SHA-pinned actions for supply chain security
 #    - Minimal permissions (explicitly declared per job)
@@ -141,15 +148,14 @@ jobs:
           go-version: ${{ needs.load-env.outputs.go-primary-version }}
           cache: true
 
-      - name: Install actionlint
-        run: |
-          go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.GUARDIAN_ACTIONLINT_VERSION }}"
-          actionlint --version
-
-      - name: Install mage
-        run: |
-          go install "github.com/magefile/mage@${{ env.MAGE_X_MAGE_VERSION }}"
-          mage --version
+      # Unified tool setup with caching (actionlint + mage only, no act needed for static)
+      - name: Setup Guardian tools
+        uses: ./.github/actions/setup-guardian-tools
+        with:
+          actionlint-version: ${{ env.GUARDIAN_ACTIONLINT_VERSION }}
+          mage-version: ${{ env.MAGE_X_MAGE_VERSION }}
+          act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+          install-act: "false"
 
       - name: Setup MAGE-X
         uses: ./.github/actions/setup-magex
@@ -188,8 +194,18 @@ jobs:
           - ${{ needs.load-env.outputs.redis-enabled == 'true' && '6379:6379' || '9999:9999' }}
 
     steps:
-      - name: Checkout code
+      # Sparse checkout for minimal clone overhead
+      - name: Checkout code (sparse)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: |
+            .github/
+            guardian/
+            magefiles/
+            go.mod
+            go.sum
+            .mage.yaml
+          sparse-checkout-cone-mode: false
 
       - name: Parse environment variables
         uses: ./.github/actions/parse-env
@@ -209,61 +225,30 @@ jobs:
           runner-os: ubuntu-24.04
           use-local: ${{ env.MAGE_X_USE_LOCAL }}
 
-      - name: Install actionlint
-        run: |
-          go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.GUARDIAN_ACTIONLINT_VERSION }}"
-          actionlint --version
-
-      - name: Install mage
-        run: |
-          go install "github.com/magefile/mage@${{ env.MAGE_X_MAGE_VERSION }}"
-          mage --version
-
-      # Cache act binary for faster startup
-      - name: Cache act binary
-        id: cache-act
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      # Unified tool setup with caching (actionlint + mage + act)
+      - name: Setup Guardian tools
+        id: guardian-tools
+        uses: ./.github/actions/setup-guardian-tools
         with:
-          path: ~/go/bin/act
-          key: act-${{ env.GUARDIAN_ACT_VERSION }}-linux-amd64
+          actionlint-version: ${{ env.GUARDIAN_ACTIONLINT_VERSION }}
+          mage-version: ${{ env.MAGE_X_MAGE_VERSION }}
+          act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+          install-act: "true"
 
-      - name: Install act
-        if: steps.cache-act.outputs.cache-hit != 'true'
-        run: |
-          go install "github.com/nektos/act@${{ env.GUARDIAN_ACT_VERSION }}"
-          act --version
-
-      - name: Verify act installation
-        if: steps.cache-act.outputs.cache-hit == 'true'
-        run: |
-          ~/go/bin/act --version || go install "github.com/nektos/act@${{ env.GUARDIAN_ACT_VERSION }}"
-
-      # Cache Docker images used by act
-      - name: Cache Docker images
-        id: cache-docker
-        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      # Cache act Docker images (both act-latest and act-22.04)
+      - name: Cache act Docker images
+        id: cache-act-images
+        uses: ./.github/actions/cache-act-images
         with:
-          path: /tmp/act-images
-          key: act-images-${{ runner.os }}-v1
+          act-version: ${{ env.GUARDIAN_ACT_VERSION }}
 
-      - name: Load cached Docker images
-        if: steps.cache-docker.outputs.cache-hit == 'true'
-        run: |
-          if [ -f /tmp/act-images/act-latest.tar ]; then
-            docker load -i /tmp/act-images/act-latest.tar || true
-          fi
-
-      - name: Pre-pull act Docker images
-        run: |
-          echo "Pre-pulling act Docker images..."
-          docker pull catthehacker/ubuntu:act-latest || true
-          docker pull catthehacker/ubuntu:act-22.04 || true
-
-      - name: Save Docker images to cache
-        if: steps.cache-docker.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p /tmp/act-images
-          docker save catthehacker/ubuntu:act-latest -o /tmp/act-images/act-latest.tar || true
+      # Cache Redis service image (when enabled)
+      - name: Cache Redis image
+        if: needs.load-env.outputs.redis-enabled == 'true'
+        uses: ./.github/actions/cache-redis-image
+        with:
+          redis-version: ${{ needs.load-env.outputs.redis-version }}
+          runner-os: ${{ runner.os }}
 
       - name: Check Docker status
         run: |
@@ -275,6 +260,10 @@ jobs:
           echo ""
           echo "Disk space:"
           df -h
+          echo ""
+          echo "Cache status:"
+          echo "  • Guardian tools cache: ${{ steps.guardian-tools.outputs.cache-hit }}"
+          echo "  • Act images cache: ${{ steps.cache-act-images.outputs.cache-hit }}"
 
       - name: Setup Redis environment
         if: needs.load-env.outputs.redis-enabled == 'true'

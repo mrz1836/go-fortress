@@ -1,0 +1,255 @@
+# ------------------------------------------------------------------------------------
+#  Setup Guardian Tools Composite Action (GoFortress)
+#
+#  Purpose: Install and cache all Guardian CI tools (actionlint, mage, act) in a single
+#  unified action. Provides efficient caching by version with automatic installation
+#  on cache miss and PATH management for seamless integration.
+#
+#  Features:
+#    - Unified caching of actionlint, mage, and act binaries
+#    - Version-pinned cache keys for proper cache invalidation
+#    - Automatic go install only on cache miss
+#    - PATH management for immediate availability
+#    - Performance tracking outputs
+#    - Cross-platform support via runner.os/runner.arch
+#
+#  Usage:
+#    - uses: ./.github/actions/setup-guardian-tools
+#      with:
+#        actionlint-version: ${{ env.GUARDIAN_ACTIONLINT_VERSION }}
+#        mage-version: ${{ env.MAGE_X_MAGE_VERSION }}
+#        act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+#
+#  Maintainer: @mrz1836
+#
+# ------------------------------------------------------------------------------------
+
+name: "Setup Guardian Tools"
+description: "Install and cache Guardian CI tools (actionlint, mage, act) with unified version-pinned caching"
+
+inputs:
+  actionlint-version:
+    description: "actionlint version to install (e.g., v1.7.7)"
+    required: true
+  mage-version:
+    description: "mage version to install (e.g., v1.15.0)"
+    required: true
+  act-version:
+    description: "act version to install (e.g., v0.2.84)"
+    required: true
+  install-act:
+    description: "Whether to install act (false for static validation which doesn't need it)"
+    required: false
+    default: "true"
+
+outputs:
+  cache-hit:
+    description: "Whether tools were restored from cache (true/false)"
+    value: ${{ steps.tools-cache.outputs.cache-hit }}
+  installation-method:
+    description: "How tools were obtained: cached or fresh"
+    value: ${{ steps.installation-summary.outputs.method }}
+  actionlint-version-actual:
+    description: "Actual installed actionlint version"
+    value: ${{ steps.verify-tools.outputs.actionlint-version }}
+  mage-version-actual:
+    description: "Actual installed mage version"
+    value: ${{ steps.verify-tools.outputs.mage-version }}
+  act-version-actual:
+    description: "Actual installed act version"
+    value: ${{ steps.verify-tools.outputs.act-version }}
+  cache-key:
+    description: "Cache key used for tool binaries"
+    value: ${{ steps.cache-config.outputs.cache-key }}
+
+runs:
+  using: "composite"
+  steps:
+    # --------------------------------------------------------------------
+    # Configure cache settings
+    # --------------------------------------------------------------------
+    - name: 🔧 Configure cache settings
+      id: cache-config
+      shell: bash
+      run: |
+        echo "🔧 Configuring Guardian tools cache..."
+
+        # Build cache key with all version components
+        ACTIONLINT_VERSION="${{ inputs.actionlint-version }}"
+        MAGE_VERSION="${{ inputs.mage-version }}"
+        ACT_VERSION="${{ inputs.act-version }}"
+        INSTALL_ACT="${{ inputs.install-act }}"
+
+        # Create cache key (include act version only if installing act)
+        if [[ "$INSTALL_ACT" == "true" ]]; then
+          CACHE_KEY="guardian-tools-${ACTIONLINT_VERSION}-${MAGE_VERSION}-${ACT_VERSION}-${{ runner.os }}-${{ runner.arch }}"
+        else
+          CACHE_KEY="guardian-tools-static-${ACTIONLINT_VERSION}-${MAGE_VERSION}-${{ runner.os }}-${{ runner.arch }}"
+        fi
+
+        echo "📋 Cache Configuration:"
+        echo "   • actionlint: $ACTIONLINT_VERSION"
+        echo "   • mage: $MAGE_VERSION"
+        echo "   • act: $ACT_VERSION (install: $INSTALL_ACT)"
+        echo "   • OS: ${{ runner.os }}"
+        echo "   • Arch: ${{ runner.arch }}"
+        echo "   • Cache Key: $CACHE_KEY"
+
+        echo "cache-key=$CACHE_KEY" >> $GITHUB_OUTPUT
+
+    # --------------------------------------------------------------------
+    # Restore tool binaries from cache
+    # --------------------------------------------------------------------
+    - name: 💾 Restore Guardian tools cache
+      id: tools-cache
+      uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+      with:
+        path: ~/.cache/guardian-tools
+        key: ${{ steps.cache-config.outputs.cache-key }}
+
+    # --------------------------------------------------------------------
+    # Install cached binaries to PATH when cache hits
+    # --------------------------------------------------------------------
+    - name: 📦 Install cached tools to PATH
+      if: steps.tools-cache.outputs.cache-hit == 'true'
+      shell: bash
+      run: |
+        echo "📦 Installing cached Guardian tools to PATH..."
+
+        # Ensure GOPATH/bin exists and is in PATH
+        mkdir -p "$(go env GOPATH)/bin"
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+        # Copy cached binaries
+        if [ -f ~/.cache/guardian-tools/actionlint ]; then
+          cp ~/.cache/guardian-tools/actionlint "$(go env GOPATH)/bin/actionlint"
+          chmod +x "$(go env GOPATH)/bin/actionlint"
+          echo "✅ actionlint installed from cache"
+        fi
+
+        if [ -f ~/.cache/guardian-tools/mage ]; then
+          cp ~/.cache/guardian-tools/mage "$(go env GOPATH)/bin/mage"
+          chmod +x "$(go env GOPATH)/bin/mage"
+          echo "✅ mage installed from cache"
+        fi
+
+        if [ -f ~/.cache/guardian-tools/act ] && [[ "${{ inputs.install-act }}" == "true" ]]; then
+          cp ~/.cache/guardian-tools/act "$(go env GOPATH)/bin/act"
+          chmod +x "$(go env GOPATH)/bin/act"
+          echo "✅ act installed from cache"
+        fi
+
+        echo "✅ All cached Guardian tools installed to PATH"
+
+    # --------------------------------------------------------------------
+    # Install tools via go install when cache misses
+    # --------------------------------------------------------------------
+    - name: ⬇️ Install Guardian tools (cache miss)
+      if: steps.tools-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        echo "⬇️ Cache miss – installing Guardian tools..."
+
+        # Create cache directory
+        mkdir -p ~/.cache/guardian-tools
+
+        # Ensure GOPATH/bin exists and is in PATH
+        mkdir -p "$(go env GOPATH)/bin"
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+        # Install actionlint
+        echo "📋 Installing actionlint ${{ inputs.actionlint-version }}..."
+        go install "github.com/rhysd/actionlint/cmd/actionlint@${{ inputs.actionlint-version }}"
+        cp "$(go env GOPATH)/bin/actionlint" ~/.cache/guardian-tools/actionlint
+        echo "✅ actionlint installed"
+
+        # Install mage
+        echo "📋 Installing mage ${{ inputs.mage-version }}..."
+        go install "github.com/magefile/mage@${{ inputs.mage-version }}"
+        cp "$(go env GOPATH)/bin/mage" ~/.cache/guardian-tools/mage
+        echo "✅ mage installed"
+
+        # Install act (only if requested)
+        if [[ "${{ inputs.install-act }}" == "true" ]]; then
+          echo "📋 Installing act ${{ inputs.act-version }}..."
+          go install "github.com/nektos/act@${{ inputs.act-version }}"
+          cp "$(go env GOPATH)/bin/act" ~/.cache/guardian-tools/act
+          echo "✅ act installed"
+        fi
+
+        echo "✅ All Guardian tools installed and cached"
+
+    # --------------------------------------------------------------------
+    # Verify tool installations
+    # --------------------------------------------------------------------
+    - name: 🔍 Verify tool installations
+      id: verify-tools
+      shell: bash
+      run: |
+        echo "🔍 Verifying Guardian tool installations..."
+        ERRORS=0
+
+        # Verify actionlint
+        if command -v actionlint >/dev/null 2>&1; then
+          ACTIONLINT_VERSION=$(actionlint --version 2>&1 | head -1 || echo "unknown")
+          echo "✅ actionlint: $ACTIONLINT_VERSION"
+          echo "actionlint-version=$ACTIONLINT_VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "❌ ERROR: actionlint is not available in PATH" >&2
+          ERRORS=$((ERRORS + 1))
+        fi
+
+        # Verify mage
+        if command -v mage >/dev/null 2>&1; then
+          MAGE_VERSION=$(mage -version 2>&1 | head -1 || echo "unknown")
+          echo "✅ mage: $MAGE_VERSION"
+          echo "mage-version=$MAGE_VERSION" >> $GITHUB_OUTPUT
+        else
+          echo "❌ ERROR: mage is not available in PATH" >&2
+          ERRORS=$((ERRORS + 1))
+        fi
+
+        # Verify act (only if requested)
+        if [[ "${{ inputs.install-act }}" == "true" ]]; then
+          if command -v act >/dev/null 2>&1; then
+            ACT_VERSION=$(act --version 2>&1 | head -1 || echo "unknown")
+            echo "✅ act: $ACT_VERSION"
+            echo "act-version=$ACT_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "❌ ERROR: act is not available in PATH" >&2
+            ERRORS=$((ERRORS + 1))
+          fi
+        else
+          echo "ℹ️ act installation skipped (install-act=false)"
+          echo "act-version=not-installed" >> $GITHUB_OUTPUT
+        fi
+
+        if [ $ERRORS -gt 0 ]; then
+          echo "❌ $ERRORS tool(s) failed verification" >&2
+          exit 1
+        fi
+
+        echo "✅ All Guardian tools verified successfully"
+
+    # --------------------------------------------------------------------
+    # Installation summary
+    # --------------------------------------------------------------------
+    - name: 📋 Installation summary
+      id: installation-summary
+      shell: bash
+      run: |
+        if [[ "${{ steps.tools-cache.outputs.cache-hit }}" == "true" ]]; then
+          echo "method=cached" >> $GITHUB_OUTPUT
+          echo "🚀 Guardian tools restored from cache"
+        else
+          echo "method=fresh" >> $GITHUB_OUTPUT
+          echo "📦 Guardian tools freshly installed and cached"
+        fi
+
+        echo ""
+        echo "📊 Guardian Tools Summary:"
+        echo "   • Cache Key: ${{ steps.cache-config.outputs.cache-key }}"
+        echo "   • Cache Hit: ${{ steps.tools-cache.outputs.cache-hit }}"
+        echo "   • actionlint: ${{ steps.verify-tools.outputs.actionlint-version }}"
+        echo "   • mage: ${{ steps.verify-tools.outputs.mage-version }}"
+        echo "   • act: ${{ steps.verify-tools.outputs.act-version }}"
