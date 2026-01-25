@@ -1,4 +1,4 @@
-name: CI Tester (Guardian)
+name: "Guardian: CI Tester"
 
 on:
   pull_request:
@@ -39,5 +39,76 @@ jobs:
       - name: Install actionlint
         run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
 
-      - name: Run static validation
-        run: mage ci:static
+      - name: 🔍 Run static validation
+        id: run-static
+        continue-on-error: true
+        run: |
+          echo "🚀 Running static validation with mage ci:static..."
+          set +e
+          mage ci:static 2>&1 | tee static-output.log
+          STATIC_EXIT_CODE=${PIPESTATUS[0]}
+          set -e
+
+          echo "static-exit-code=$STATIC_EXIT_CODE" >> $GITHUB_OUTPUT
+          if [[ $STATIC_EXIT_CODE -eq 0 ]]; then
+            echo "static-status=success" >> $GITHUB_OUTPUT
+            echo "✅ Static validation completed successfully"
+          else
+            echo "static-status=failure" >> $GITHUB_OUTPUT
+            echo "❌ Static validation completed with errors (exit code: $STATIC_EXIT_CODE)"
+          fi
+
+      # --------------------------------------------------------------------
+      # Create GitHub Annotations for failures
+      # --------------------------------------------------------------------
+      - name: 📋 Create GitHub Annotations
+        if: always() && steps.run-static.outputs.static-status == 'failure'
+        run: |
+          echo "::error title=Static Validation Failed::CI validation issues detected - see job summary for details"
+
+      # --------------------------------------------------------------------
+      # Job Summary
+      # --------------------------------------------------------------------
+      - name: 📊 Job Summary
+        if: always()
+        run: |
+          STATIC_STATUS="${{ steps.run-static.outputs.static-status }}"
+          GO_VERSION="1.24"
+
+          echo "## 🧪 Guardian: CI Tester Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation Details | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Tool** | mage ci:static (actionlint) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Go Version** | $GO_VERSION |" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "$STATIC_STATUS" == "success" ]]; then
+            echo "| **Result** | ✅ All checks passed |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎯 **Static validation completed successfully.**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "| **Result** | ❌ Issues detected |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Show failure details if applicable
+            if [[ -f static-output.log ]]; then
+              echo "### 🚨 Error Details" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "<details>" >> $GITHUB_STEP_SUMMARY
+              echo "<summary>Click to expand full output</summary>" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              head -200 static-output.log >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "</details>" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      # --------------------------------------------------------------------
+      # Fail job if issues found
+      # --------------------------------------------------------------------
+      - name: 🚨 Fail job if issues found
+        if: always() && steps.run-static.outputs.static-status == 'failure'
+        run: |
+          echo "❌ Static validation detected issues"
+          exit 1
