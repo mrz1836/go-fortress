@@ -16,8 +16,11 @@ func main() {
 	fmt.Println("Hello, World!")
 }
 
-// badlyFormatted function has formatting issues
-func badlyFormatted() string { return "bad" }
+// badlyFormatted function has formatting issues - uses spaces instead of tabs
+func badlyFormatted() string {
+    x := 1  // WRONG: 4 spaces instead of tab
+    return fmt.Sprintf("%d", x)
+}
 
 // UnusedFunction is never called - triggers staticcheck
 func UnusedFunction() {
