@@ -29,6 +29,9 @@ type Report struct {
 	// ScenarioResults contains results from scenario execution.
 	ScenarioResults []ScenarioResult `json:"scenario_results,omitempty"`
 
+	// RunnerStatus tracks runner availability and execution counts.
+	RunnerStatus *RunnerStatus `json:"runner_status,omitempty"`
+
 	// Summary provides aggregate statistics.
 	Summary ReportSummary `json:"summary"`
 
@@ -103,6 +106,21 @@ const (
 	ResultSkip  ResultStatus = "skip"
 	ResultError ResultStatus = "error"
 )
+
+// RunnerStatus tracks the availability of the scenario runner.
+type RunnerStatus struct {
+	// Available indicates if the runner is ready to execute scenarios.
+	Available bool `json:"available"`
+
+	// UnavailableMsg explains why the runner is not available (e.g., "Docker is not running").
+	UnavailableMsg string `json:"unavailable_msg,omitempty"`
+
+	// RegisteredCount is the total number of scenarios registered.
+	RegisteredCount int `json:"registered_count"`
+
+	// ExecutedCount is the number of scenarios that actually ran.
+	ExecutedCount int `json:"executed_count"`
+}
 
 // ReportSummary provides aggregate statistics.
 type ReportSummary struct {
