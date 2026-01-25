@@ -61,7 +61,7 @@ jobs:
 
       - name: Install act
         run: |
-          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash -s -- -b /usr/local/bin
           act --version
 
       - name: Install actionlint
@@ -104,7 +104,7 @@ jobs:
 
       - name: Install act
         run: |
-          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash -s -- -b /usr/local/bin
           act --version
 
       - name: Run quick tests
