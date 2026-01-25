@@ -47,3 +47,6 @@ node_modules/
 # Speckit
 .specify/scripts
 .specify/templates
+
+# MageX build files
+.mage-x/
