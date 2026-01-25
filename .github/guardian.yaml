@@ -1,0 +1,31 @@
+# Guardian CI Testing Framework - Policy Exceptions
+#
+# This file defines exceptions to Guardian policy rules.
+# Use exceptions sparingly and document the reason clearly.
+#
+# Format:
+#   exceptions:
+#     - policy: <policy-id>           # Required: ID of the policy to bypass
+#       path: <glob-pattern>          # Required: File path or pattern
+#       reason: <explanation>         # Required: Why this exception exists
+#       expires: <YYYY-MM-DD>         # Optional: When to review this exception
+#       approved_by: <github-handle>  # Optional: Who approved this exception
+#       created_at: <YYYY-MM-DD>      # Required: When this was created
+
+exceptions: []
+
+# Example exceptions (uncomment to use):
+#
+# exceptions:
+#   - policy: sha-pinned-actions
+#     path: .github/workflows/test-experimental.yml
+#     reason: "Experimental workflow for testing latest action versions"
+#     expires: 2026-06-01
+#     approved_by: "@mrz1836"
+#     created_at: 2026-01-24
+#
+#   - policy: explicit-permissions
+#     path: .github/workflows/dependabot-*.yml
+#     reason: "Dependabot workflows use inherited permissions by design"
+#     approved_by: "@mrz1836"
+#     created_at: 2026-01-24

@@ -1,0 +1,111 @@
+name: CI Tester (Guardian)
+
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+      - 'guardian/**'
+      - 'magefiles/**'
+      - '.env.base'
+      - 'go.mod'
+      - 'go.sum'
+
+permissions:
+  contents: read
+  security-events: write  # Required for SARIF upload
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static:
+    name: Static Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Install MAGE-X
+        run: go install github.com/mrz1836/mage-x/cmd/magex@latest
+
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+
+      - name: Run static validation
+        run: magex ci:static
+
+  verify:
+    name: Full Verification
+    runs-on: ubuntu-latest
+    needs: static
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Install MAGE-X
+        run: go install github.com/mrz1836/mage-x/cmd/magex@latest
+
+      - name: Install act
+        run: |
+          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+          act --version
+
+      - name: Install actionlint
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@latest
+
+      - name: Run full verification
+        run: magex ci:verify
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: .mage-x/guardian.sarif
+          category: guardian
+
+      - name: Upload JSONL report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-results
+          path: .mage-x/ci-results.jsonl
+          retention-days: 30
+
+  scenarios-quick:
+    name: Quick Scenarios
+    runs-on: ubuntu-latest
+    needs: static
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: true
+
+      - name: Install MAGE-X
+        run: go install github.com/mrz1836/mage-x/cmd/magex@latest
+
+      - name: Install act
+        run: |
+          curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | sudo bash
+          act --version
+
+      - name: Run quick tests
+        run: magex ci:test
