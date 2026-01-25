@@ -47,11 +47,6 @@
             "godot",
             "wsl_v5"
         ],
-        "exclusions": {
-            "paths": [
-                ".github/ci-tester/fixtures/"
-            ]
-        },
         "enable": [
             "asasalint",
             "arangolint",
@@ -117,6 +112,11 @@
             "wastedassign",
             "zerologlint"
         ],
+        "exclusions": {
+            "paths": [
+                ".github/ci-tester/fixtures/"
+            ]
+        },
         "settings": {
             "dogsled": {
                 "max-blank-identifiers": 2
@@ -224,7 +224,7 @@
         "concurrency": 8,
         "issues-exit-code": 1,
         "skip-files": [
-            "magefile.go"
+            "magefiles/magefile.go"
         ],
         "tests": true
     },

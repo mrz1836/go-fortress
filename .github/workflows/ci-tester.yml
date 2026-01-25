@@ -5,7 +5,7 @@ on:
     paths:
       - '.github/**'
       - 'guardian/**'
-      - 'magefile.go'
+      - 'magefiles/**'
       - '.env.base'
       - 'go.mod'
       - 'go.sum'

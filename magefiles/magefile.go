@@ -30,7 +30,7 @@ var (
 // Tool versions - these should match .env.base
 const (
 	ActVersion        = "v0.2.84"
-	ActionlintVersion = "v1.6.27"
+	ActionlintVersion = "v1.7.10"
 )
 
 // Ci is the namespace for CI testing commands.
