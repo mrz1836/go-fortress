@@ -151,8 +151,8 @@ Based on plan.md structure:
 - [X] T064 [US3] Implement ReportSummary calculation in guardian/reporter/report.go
 - [X] T065 [US3] Implement ci:test MAGE-X command in magefiles/ci.go calling Guardian.RunTest
 - [X] T066 [US3] Implement ci:verify MAGE-X command in magefiles/ci.go calling Guardian.RunVerify
-- [X] T067 [P] [US3] Create .github/workflows/ci-tester.yml workflow for Guardian CI integration
-- [X] T068 [P] [US3] Add SARIF upload step to ci-tester.yml for GitHub Security tab integration
+- [X] T067 [P] [US3] Create .github/workflows/fortress-guardian.yml workflow for Guardian CI integration
+- [X] T068 [P] [US3] Add SARIF upload step to fortress-guardian.yml for GitHub Security tab integration
 
 **Checkpoint**: User Story 3 complete - `magex ci:verify` runs all scenarios with full reporting
 

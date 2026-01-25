@@ -175,7 +175,7 @@ go-fortress/
 │   │       └── cov-fail/       # go.mod + low coverage
 │   ├── guardian.yaml           # Policy exceptions configuration
 │   └── workflows/
-│       └── ci-tester.yml       # Guardian CI workflow
+│       └── fortress-guardian.yml  # Guardian CI workflow
 └── magefiles/                  # MAGE-X integration (if custom targets needed)
     └── ci.go                   # ci:* namespace commands
 ```

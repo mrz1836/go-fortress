@@ -259,25 +259,28 @@ magex ci:static
 
 ### CI Pipeline Integration
 
-The `ci-tester.yml` workflow runs Guardian on PRs:
+The `fortress-guardian.yml` workflow runs Guardian on PRs:
 
 ```yaml
-# .github/workflows/ci-tester.yml
-name: CI Tester (Guardian)
+# .github/workflows/fortress-guardian.yml
+name: "Guardian: CI Tester"
 
 on:
   pull_request:
     paths:
       - '.github/**'
+      - 'guardian/**'
       - 'magefiles/**'
       - '.env.base'
+      - 'go.mod'
+      - 'go.sum'
 
 jobs:
   guardian:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./.github/actions/setup-go
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/load-env
       - uses: ./.github/actions/setup-magex
       - run: magex ci:verify
       - uses: github/codeql-action/upload-sarif@v3
@@ -448,7 +451,7 @@ This ensures:
 
 1. Run `magex ci:test` to validate your current workflows
 2. Review any findings and fix policy violations
-3. Add `ci-tester.yml` to your CI pipeline
+3. Add `fortress-guardian.yml` to your CI pipeline
 4. Create custom scenarios for project-specific validations
 
 For detailed API documentation, see [contracts/guardian-api.go](./contracts/guardian-api.go).

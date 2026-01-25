@@ -181,7 +181,7 @@ go-fortress/
     │       ├── vuln-fail/      # Fixture: CVE dependency
     │       └── cov-fail/       # Fixture: low coverage
     └── workflows/
-        └── ci-tester.yml       # Runs Guardian on PR
+        └── fortress-guardian.yml  # Runs Guardian on PR
 ```
 
 **Key Points:**
@@ -706,10 +706,10 @@ Guardian provides unit tests for all 17 composite actions:
 | `security-scans` | Tool installation, finding format |
 | `notify-slack` | Message formatting (mock) |
 
-### 10.3 New Workflow: `ci-tester.yml`
+### 10.3 New Workflow: `fortress-guardian.yml`
 
 ```yaml
-name: CI Tester (Guardian)
+name: "Guardian: CI Tester"
 
 on:
   pull_request:
@@ -925,7 +925,7 @@ exceptions:
 | Task | Description | Deliverable |
 |------|-------------|-------------|
 | MAGE-X targets | Wire up all `ci:*` commands | `magefiles/ci.go` |
-| CI workflow | Create `ci-tester.yml` | `.github/workflows/ci-tester.yml` |
+| CI workflow | Create `fortress-guardian.yml` | `.github/workflows/fortress-guardian.yml` |
 | Reporter | Implement JSONL, SARIF, annotations | `guardian/reporter/*.go` |
 | Fork scenarios | Implement FORK-001, FORK-002, FORK-003 | Fork safety validation |
 | Self-test | Verify Guardian catches regressions | Passing CI |
