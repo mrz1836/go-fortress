@@ -12,7 +12,12 @@
 #       approved_by: <github-handle>  # Optional: Who approved this exception
 #       created_at: <YYYY-MM-DD>      # Required: When this was created
 
-exceptions: []
+exceptions:
+  - policy: no-dangerous-workflows
+    path: .github/workflows/pull-request-management-fork.yml
+    reason: "Implements GitHub's recommended two-workflow security pattern. Only checks out base branch (ref: github.base_ref), never PR head. See workflow header documentation for security analysis."
+    approved_by: "@mrz1836"
+    created_at: 2026-01-25
 
 # Example exceptions (uncomment to use):
 #

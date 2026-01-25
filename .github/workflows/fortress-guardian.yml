@@ -432,9 +432,9 @@ jobs:
 
               # Parse each line of the JSONL file
               while IFS= read -r line; do
-                SCENARIO_ID=$(echo "$line" | jq -r '.scenario_id // "unknown"')
+                SCENARIO_ID=$(echo "$line" | jq -r '.id // "unknown"')
                 STATUS=$(echo "$line" | jq -r '.status // "unknown"')
-                DURATION=$(echo "$line" | jq -r '.duration // "N/A"')
+                DURATION=$(echo "$line" | jq -r '.duration_ms // "N/A"')
                 ERROR=$(echo "$line" | jq -r '.error // ""')
                 MISSING=$(echo "$line" | jq -r '.missing_patterns // [] | join(", ")')
 
@@ -458,10 +458,18 @@ jobs:
                   CACHE-*) CATEGORY="Config" ;;
                 esac
 
-                # Format duration (convert nanoseconds to seconds if needed)
-                if [[ "$DURATION" =~ ^[0-9]+$ ]] && [[ "$DURATION" -gt 1000000000 ]]; then
-                  DURATION_SEC=$((DURATION / 1000000000))
-                  DURATION_DISPLAY="${DURATION_SEC}s"
+                # Format duration (convert milliseconds to human-readable format)
+                if [[ "$DURATION" =~ ^[0-9]+$ ]]; then
+                  if [[ "$DURATION" -ge 60000 ]]; then
+                    DURATION_MIN=$((DURATION / 60000))
+                    DURATION_SEC=$(((DURATION % 60000) / 1000))
+                    DURATION_DISPLAY="${DURATION_MIN}m ${DURATION_SEC}s"
+                  elif [[ "$DURATION" -ge 1000 ]]; then
+                    DURATION_SEC=$((DURATION / 1000))
+                    DURATION_DISPLAY="${DURATION_SEC}s"
+                  else
+                    DURATION_DISPLAY="${DURATION}ms"
+                  fi
                 elif [[ "$DURATION" =~ ^[0-9]+\.?[0-9]*s$ ]]; then
                   DURATION_DISPLAY="$DURATION"
                 else

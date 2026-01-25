@@ -12,9 +12,10 @@ func registerQualityScenarios(r *Registry) {
 		Description: "Unused variable detection",
 		FixturePath: ".github/ci-tester/fixtures/lint-fail",
 		Workflow:    "ci.yml",
+		Job:         "lint",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
-			LogPatterns: []string{"declared (but|and) not used", "unusedVar"},
+			LogPatterns: []string{"declared and not used", "unusedVar"},
 		},
 		Timeout: 30 * time.Second,
 		Tags:    []string{"fast", "lint", "p1"},
