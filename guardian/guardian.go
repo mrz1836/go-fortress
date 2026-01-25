@@ -8,7 +8,7 @@
 //
 // Create a Guardian instance with default configuration:
 //
-//	g, err := guardian.New(guardian.DefaultConfig())
+//	g, err := guardian.New(ctx, guardian.DefaultConfig())
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -24,6 +24,7 @@ package guardian
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,6 +33,17 @@ import (
 	"github.com/mrz1836/go-fortress/guardian/runner"
 	"github.com/mrz1836/go-fortress/guardian/scenarios"
 	"github.com/mrz1836/go-fortress/guardian/validator"
+)
+
+// Version is the Guardian version.
+const Version = "1.0.0"
+
+// Sentinel errors for Guardian operations.
+var (
+	// ErrScenarioNotFound is returned when a requested scenario ID does not exist.
+	ErrScenarioNotFound = errors.New("scenario not found")
+	// ErrRunnerNotAvailable is returned when the runner is not available (e.g., Docker not running).
+	ErrRunnerNotAvailable = errors.New("runner not available: Docker may not be running")
 )
 
 // Guardian is the main entry point for CI validation.
@@ -44,8 +56,22 @@ type Guardian struct {
 	scenarios  *scenarios.Registry
 }
 
+// ScenarioOptions configures single scenario execution.
+type ScenarioOptions struct {
+	Verbose       bool
+	KeepContainer bool
+	Timeout       time.Duration
+}
+
+// ScenarioFilter configures scenario listing.
+type ScenarioFilter struct {
+	Category        string
+	Tags            []string
+	IncludeDisabled bool
+}
+
 // New creates a Guardian instance with the given configuration.
-func New(cfg *Config) (*Guardian, error) {
+func New(ctx context.Context, cfg *Config) (*Guardian, error) {
 	if cfg == nil {
 		cfg = DefaultConfig()
 	}
@@ -62,13 +88,14 @@ func New(cfg *Config) (*Guardian, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating policy engine: %w", err)
 	}
+
 	g.policy = policyEngine
 
 	// Load policy exceptions if config file exists
 	if cfg.ExceptionsFile != "" {
-		if err := g.policy.LoadExceptions(context.Background(), cfg.ExceptionsFile); err != nil {
+		if loadErr := g.policy.LoadExceptions(ctx, cfg.ExceptionsFile); loadErr != nil {
 			// Non-fatal: exceptions file may not exist yet
-			_ = err
+			_ = loadErr
 		}
 	}
 
@@ -91,6 +118,190 @@ func New(cfg *Config) (*Guardian, error) {
 	g.registerDefaultScenarios()
 
 	return g, nil
+}
+
+// RunStatic performs static validation only (no Docker required).
+// Returns findings from all validators and policy checks.
+// Target execution time: < 5 seconds.
+func (g *Guardian) RunStatic(ctx context.Context) (*reporter.StaticResults, error) {
+	start := time.Now()
+
+	results := &reporter.StaticResults{
+		Findings:      []validator.Finding{},
+		ValidatorsRun: []string{},
+	}
+
+	// Find all workflow files
+	workflows, err := g.findWorkflows()
+	if err != nil {
+		return nil, fmt.Errorf("finding workflows: %w", err)
+	}
+
+	// Run all validators on each workflow
+	for _, wf := range workflows {
+		findings, err := g.validators.ValidateAll(ctx, wf)
+		if err != nil {
+			return nil, fmt.Errorf("validating %s: %w", wf, err)
+		}
+
+		results.Findings = append(results.Findings, findings...)
+	}
+
+	// Record which validators ran
+	for _, v := range g.validators.All() {
+		results.ValidatorsRun = append(results.ValidatorsRun, v.Name())
+	}
+
+	// Run policy checks
+	for _, wf := range workflows {
+		workflow, err := policy.ParseWorkflow(wf)
+		if err != nil {
+			// Skip files that can't be parsed as workflows
+			continue
+		}
+
+		policyFindings, err := g.policy.Evaluate(ctx, workflow)
+		if err != nil {
+			return nil, fmt.Errorf("evaluating policies for %s: %w", wf, err)
+		}
+
+		results.Findings = append(results.Findings, policyFindings...)
+	}
+
+	results.Duration = time.Since(start)
+
+	return results, nil
+}
+
+// RunTest executes quick validation scenarios.
+// Includes static validation plus fast failure scenarios.
+// Target execution time: < 60 seconds.
+func (g *Guardian) RunTest(ctx context.Context) (*reporter.Report, error) {
+	start := time.Now()
+
+	report := &reporter.Report{
+		Version:   Version,
+		StartTime: start,
+		Mode:      reporter.ModeTest,
+	}
+
+	// Run static validation first
+	staticResults, err := g.RunStatic(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("static validation: %w", err)
+	}
+
+	report.StaticResults = staticResults
+
+	// Run fast scenarios if runner is available
+	if g.runner != nil {
+		if err := g.runner.CheckAvailable(ctx); err == nil {
+			fastScenarios := g.scenarios.ByTags([]string{"fast"})
+
+			scenarioResults, err := g.executeScenarios(ctx, fastScenarios)
+			if err != nil {
+				return nil, fmt.Errorf("executing scenarios: %w", err)
+			}
+
+			report.ScenarioResults = scenarioResults
+		}
+	}
+
+	report.EndTime = time.Now()
+	report.Duration = report.EndTime.Sub(report.StartTime)
+	report.Summary = g.calculateSummary(report)
+
+	return report, nil
+}
+
+// RunVerify executes comprehensive validation.
+// Includes all scenarios for pre-merge verification.
+// Target execution time: < 5 minutes.
+func (g *Guardian) RunVerify(ctx context.Context) (*reporter.Report, error) {
+	start := time.Now()
+
+	report := &reporter.Report{
+		Version:   Version,
+		StartTime: start,
+		Mode:      reporter.ModeVerify,
+	}
+
+	// Run static validation first
+	staticResults, err := g.RunStatic(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("static validation: %w", err)
+	}
+
+	report.StaticResults = staticResults
+
+	// Run all scenarios if runner is available
+	if g.runner != nil {
+		if err := g.runner.CheckAvailable(ctx); err == nil {
+			allScenarios := g.scenarios.All()
+
+			scenarioResults, err := g.executeScenarios(ctx, allScenarios)
+			if err != nil {
+				return nil, fmt.Errorf("executing scenarios: %w", err)
+			}
+
+			report.ScenarioResults = scenarioResults
+		}
+	}
+
+	report.EndTime = time.Now()
+	report.Duration = report.EndTime.Sub(report.StartTime)
+	report.Summary = g.calculateSummary(report)
+
+	return report, nil
+}
+
+// RunScenario executes a single scenario by ID.
+// Used for debugging specific CI behaviors.
+func (g *Guardian) RunScenario(ctx context.Context, id string, opts ScenarioOptions) (*reporter.ScenarioResult, error) {
+	scenario, ok := g.scenarios.Get(id)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrScenarioNotFound, id)
+	}
+
+	if g.runner == nil {
+		return nil, ErrRunnerNotAvailable
+	}
+
+	if err := g.runner.CheckAvailable(ctx); err != nil {
+		return nil, fmt.Errorf("runner not available: %w", err)
+	}
+
+	return g.executeScenario(ctx, scenario, opts)
+}
+
+// ListScenarios returns all available scenarios.
+// Supports filtering by category or tags.
+func (g *Guardian) ListScenarios(_ context.Context, filter ScenarioFilter) ([]scenarios.Info, error) {
+	var result []scenarios.Info
+
+	allScenarios := g.scenarios.All()
+
+	for _, s := range allScenarios {
+		// Apply category filter
+		if filter.Category != "" && string(s.Category) != filter.Category {
+			continue
+		}
+
+		// Apply tag filter
+		if len(filter.Tags) > 0 && !hasAllTags(s.Tags, filter.Tags) {
+			continue
+		}
+
+		result = append(result, scenarios.Info{
+			ID:             s.ID,
+			Category:       string(s.Category),
+			Description:    s.Description,
+			ExpectedStatus: string(s.Expected.Status),
+			Tags:           s.Tags,
+		})
+	}
+
+	return result, nil
 }
 
 // registerDefaultValidators sets up the standard validators.
@@ -121,193 +332,6 @@ func (g *Guardian) registerDefaultScenarios() {
 	scenarios.RegisterAll(g.scenarios)
 }
 
-// RunStatic performs static validation only (no Docker required).
-// Returns findings from all validators and policy checks.
-// Target execution time: < 5 seconds.
-func (g *Guardian) RunStatic(ctx context.Context) (*reporter.StaticResults, error) {
-	start := time.Now()
-
-	results := &reporter.StaticResults{
-		Findings:      []validator.Finding{},
-		ValidatorsRun: []string{},
-	}
-
-	// Find all workflow files
-	workflows, err := g.findWorkflows()
-	if err != nil {
-		return nil, fmt.Errorf("finding workflows: %w", err)
-	}
-
-	// Run all validators on each workflow
-	for _, wf := range workflows {
-		findings, err := g.validators.ValidateAll(ctx, wf)
-		if err != nil {
-			return nil, fmt.Errorf("validating %s: %w", wf, err)
-		}
-		results.Findings = append(results.Findings, findings...)
-	}
-
-	// Record which validators ran
-	for _, v := range g.validators.All() {
-		results.ValidatorsRun = append(results.ValidatorsRun, v.Name())
-	}
-
-	// Run policy checks
-	for _, wf := range workflows {
-		workflow, err := policy.ParseWorkflow(wf)
-		if err != nil {
-			// Skip files that can't be parsed as workflows
-			continue
-		}
-		policyFindings, err := g.policy.Evaluate(ctx, workflow)
-		if err != nil {
-			return nil, fmt.Errorf("evaluating policies for %s: %w", wf, err)
-		}
-		results.Findings = append(results.Findings, policyFindings...)
-	}
-
-	results.Duration = time.Since(start)
-	return results, nil
-}
-
-// RunTest executes quick validation scenarios.
-// Includes static validation plus fast failure scenarios.
-// Target execution time: < 60 seconds.
-func (g *Guardian) RunTest(ctx context.Context) (*reporter.Report, error) {
-	start := time.Now()
-
-	report := &reporter.Report{
-		Version:   Version,
-		StartTime: start,
-		Mode:      reporter.ModeTest,
-	}
-
-	// Run static validation first
-	staticResults, err := g.RunStatic(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("static validation: %w", err)
-	}
-	report.StaticResults = staticResults
-
-	// Run fast scenarios if runner is available
-	if g.runner != nil {
-		if err := g.runner.CheckAvailable(ctx); err == nil {
-			fastScenarios := g.scenarios.ByTags([]string{"fast"})
-			scenarioResults, err := g.executeScenarios(ctx, fastScenarios)
-			if err != nil {
-				return nil, fmt.Errorf("executing scenarios: %w", err)
-			}
-			report.ScenarioResults = scenarioResults
-		}
-	}
-
-	report.EndTime = time.Now()
-	report.Duration = report.EndTime.Sub(report.StartTime)
-	report.Summary = g.calculateSummary(report)
-
-	return report, nil
-}
-
-// RunVerify executes comprehensive validation.
-// Includes all scenarios for pre-merge verification.
-// Target execution time: < 5 minutes.
-func (g *Guardian) RunVerify(ctx context.Context) (*reporter.Report, error) {
-	start := time.Now()
-
-	report := &reporter.Report{
-		Version:   Version,
-		StartTime: start,
-		Mode:      reporter.ModeVerify,
-	}
-
-	// Run static validation first
-	staticResults, err := g.RunStatic(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("static validation: %w", err)
-	}
-	report.StaticResults = staticResults
-
-	// Run all scenarios if runner is available
-	if g.runner != nil {
-		if err := g.runner.CheckAvailable(ctx); err == nil {
-			allScenarios := g.scenarios.All()
-			scenarioResults, err := g.executeScenarios(ctx, allScenarios)
-			if err != nil {
-				return nil, fmt.Errorf("executing scenarios: %w", err)
-			}
-			report.ScenarioResults = scenarioResults
-		}
-	}
-
-	report.EndTime = time.Now()
-	report.Duration = report.EndTime.Sub(report.StartTime)
-	report.Summary = g.calculateSummary(report)
-
-	return report, nil
-}
-
-// RunScenario executes a single scenario by ID.
-// Used for debugging specific CI behaviors.
-func (g *Guardian) RunScenario(ctx context.Context, id string, opts ScenarioOptions) (*reporter.ScenarioResult, error) {
-	scenario, ok := g.scenarios.Get(id)
-	if !ok {
-		return nil, fmt.Errorf("scenario not found: %s", id)
-	}
-
-	if g.runner == nil {
-		return nil, fmt.Errorf("runner not available: Docker may not be running")
-	}
-
-	if err := g.runner.CheckAvailable(ctx); err != nil {
-		return nil, fmt.Errorf("runner not available: %w", err)
-	}
-
-	return g.executeScenario(ctx, scenario, opts)
-}
-
-// ListScenarios returns all available scenarios.
-// Supports filtering by category or tags.
-func (g *Guardian) ListScenarios(_ context.Context, filter ScenarioFilter) ([]scenarios.Info, error) {
-	var result []scenarios.Info
-
-	allScenarios := g.scenarios.All()
-	for _, s := range allScenarios {
-		// Apply category filter
-		if filter.Category != "" && string(s.Category) != filter.Category {
-			continue
-		}
-
-		// Apply tag filter
-		if len(filter.Tags) > 0 && !hasAllTags(s.Tags, filter.Tags) {
-			continue
-		}
-
-		result = append(result, scenarios.Info{
-			ID:             s.ID,
-			Category:       string(s.Category),
-			Description:    s.Description,
-			ExpectedStatus: string(s.Expected.Status),
-			Tags:           s.Tags,
-		})
-	}
-
-	return result, nil
-}
-
-// ScenarioOptions configures single scenario execution.
-type ScenarioOptions struct {
-	Verbose       bool
-	KeepContainer bool
-	Timeout       time.Duration
-}
-
-// ScenarioFilter configures scenario listing.
-type ScenarioFilter struct {
-	Category        string
-	Tags            []string
-	IncludeDisabled bool
-}
-
 // findWorkflows returns all workflow files in the configured directory.
 func (g *Guardian) findWorkflows() ([]string, error) {
 	return validator.FindWorkflowFiles(g.config.WorkflowsDir)
@@ -327,8 +351,10 @@ func (g *Guardian) executeScenarios(ctx context.Context, scenarioList []*scenari
 				Status:     reporter.ResultError,
 				Error:      err.Error(),
 			})
+
 			continue
 		}
+
 		results = append(results, *result)
 	}
 
@@ -341,6 +367,7 @@ func (g *Guardian) executeScenario(ctx context.Context, s *scenarios.Scenario, o
 	if opts.Timeout > 0 {
 		timeout = opts.Timeout
 	}
+
 	if timeout == 0 {
 		timeout = g.config.ScenarioTimeout
 	}
@@ -370,6 +397,7 @@ func (g *Guardian) executeScenario(ctx context.Context, s *scenarios.Scenario, o
 	if err != nil {
 		result.Status = reporter.ResultError
 		result.Error = err.Error()
+
 		return result, nil
 	}
 
@@ -391,6 +419,7 @@ func (g *Guardian) calculateSummary(report *reporter.Report) reporter.ReportSumm
 	// Count findings
 	if report.StaticResults != nil {
 		summary.TotalFindings = len(report.StaticResults.Findings)
+
 		for _, f := range report.StaticResults.Findings {
 			summary.FindingsByLevel[f.Severity]++
 		}
@@ -398,6 +427,7 @@ func (g *Guardian) calculateSummary(report *reporter.Report) reporter.ReportSumm
 
 	// Count scenarios
 	summary.TotalScenarios = len(report.ScenarioResults)
+
 	for _, r := range report.ScenarioResults {
 		switch r.Status {
 		case reporter.ResultPass:
@@ -417,16 +447,16 @@ func (g *Guardian) calculateSummary(report *reporter.Report) reporter.ReportSumm
 // hasAllTags checks if the scenario has all required tags.
 func hasAllTags(scenarioTags, requiredTags []string) bool {
 	tagSet := make(map[string]bool)
+
 	for _, t := range scenarioTags {
 		tagSet[t] = true
 	}
+
 	for _, t := range requiredTags {
 		if !tagSet[t] {
 			return false
 		}
 	}
+
 	return true
 }
-
-// Version is the Guardian version.
-const Version = "1.0.0"

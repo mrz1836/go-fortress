@@ -31,11 +31,12 @@ func (v *EnvValidator) Validate(_ context.Context, path string) ([]Finding, erro
 		return nil, nil
 	}
 
-	file, err := os.Open(path)
+	file, err := os.Open(path) //nolint:gosec // path is validated via isEnvBaseFile
 	if err != nil {
 		return nil, fmt.Errorf("opening file: %w", err)
 	}
-	defer file.Close()
+
+	defer func() { _ = file.Close() }()
 
 	var findings []Finding
 	scanner := bufio.NewScanner(file)

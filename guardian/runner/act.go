@@ -3,15 +3,30 @@ package runner
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"errors"
 	"fmt"
+	"math/big"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 )
+
+// ErrInsufficientDiskSpace is returned when there is not enough disk space for container images.
+var ErrInsufficientDiskSpace = errors.New("insufficient disk space")
 
 // ActRunner implements Runner using nektos/act.
 type ActRunner struct {
 	path string
+}
+
+// RetryConfig configures retry behavior for operations.
+type RetryConfig struct {
+	MaxRetries     int
+	InitialBackoff time.Duration
+	MaxBackoff     time.Duration
+	BackoffFactor  float64
 }
 
 // NewActRunner creates a new act-based runner.
@@ -21,6 +36,16 @@ func NewActRunner(path string) (*ActRunner, error) {
 	}
 
 	return &ActRunner{path: path}, nil
+}
+
+// DefaultRetryConfig returns sensible defaults for retry configuration.
+func DefaultRetryConfig() RetryConfig {
+	return RetryConfig{
+		MaxRetries:     3,
+		InitialBackoff: 1 * time.Second,
+		MaxBackoff:     30 * time.Second,
+		BackoffFactor:  2.0,
+	}
 }
 
 // CheckAvailable verifies that act is installed and Docker is running.
@@ -52,12 +77,14 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 	// Set environment variables
 	if len(opts.Env) > 0 {
 		cmd.Env = cmd.Environ()
+
 		for k, v := range opts.Env {
 			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 		}
 	}
 
 	var stdout, stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
@@ -69,7 +96,8 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 	}
 
 	if err != nil {
-		if exitErr, ok := err.(*exec.ExitError); ok {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
 			result.ExitCode = exitErr.ExitCode()
 		} else {
 			return nil, fmt.Errorf("running act: %w", err)
@@ -82,6 +110,52 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 	}
 
 	return result, nil
+}
+
+// pullImage attempts to pull a Docker image once, returning retry decision.
+func pullImage(ctx context.Context, image string) (struct{}, bool, error) {
+	cmd := exec.CommandContext(ctx, "docker", "pull", image)
+	var stderr bytes.Buffer
+
+	cmd.Stderr = &stderr
+	runErr := cmd.Run()
+	if runErr != nil {
+		errMsg := stderr.String()
+		// Retry on network-related errors
+		shouldRetry := strings.Contains(errMsg, "timeout") ||
+			strings.Contains(errMsg, "connection refused") ||
+			strings.Contains(errMsg, "network") ||
+			strings.Contains(errMsg, "temporary failure") ||
+			strings.Contains(errMsg, "503") ||
+			strings.Contains(errMsg, "rate limit")
+
+		return struct{}{}, shouldRetry, fmt.Errorf("pulling image %s: %w (%s)", image, runErr, errMsg)
+	}
+
+	return struct{}{}, false, nil
+}
+
+// PullImageWithRetry pulls a Docker image with exponential backoff retry.
+func (r *ActRunner) PullImageWithRetry(ctx context.Context, image string) error {
+	cfg := DefaultRetryConfig()
+
+	_, err := RetryWithBackoff(ctx, cfg, func() (struct{}, bool, error) {
+		return pullImage(ctx, image)
+	})
+
+	return err
+}
+
+// EnsureImageAvailable ensures a Docker image is available, pulling if necessary.
+func (r *ActRunner) EnsureImageAvailable(ctx context.Context, image string) error {
+	// Check if image exists locally
+	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image)
+	if err := cmd.Run(); err == nil {
+		return nil // Image exists
+	}
+
+	// Pull with retry
+	return r.PullImageWithRetry(ctx, image)
 }
 
 // buildArgs constructs the command line arguments for act.
@@ -132,6 +206,7 @@ func (r *ActRunner) checkActInstalled(ctx context.Context) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("act not found at %s: %w", r.path, err)
 	}
+
 	return nil
 }
 
@@ -141,6 +216,7 @@ func (r *ActRunner) checkDockerRunning(ctx context.Context) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("Docker not running: %w", err)
 	}
+
 	return nil
 }
 
@@ -149,6 +225,7 @@ func extractContainerID(output string) string {
 	// Act outputs container information in various formats
 	// Look for common patterns
 	lines := strings.Split(output, "\n")
+
 	for _, line := range lines {
 		if strings.Contains(line, "container_id=") {
 			parts := strings.Split(line, "container_id=")
@@ -157,13 +234,88 @@ func extractContainerID(output string) string {
 			}
 		}
 	}
+
 	return ""
 }
 
 // CheckDiskSpace verifies sufficient disk space for container images.
-func CheckDiskSpace(requiredGB int) error {
-	// This is a simplified check; in production you might use syscall.Statfs
-	// For now, we'll skip this check and let Docker fail naturally
-	_ = requiredGB
+// requiredGB is the minimum required disk space in gigabytes.
+// path is the directory to check (typically Docker's data directory or current working dir).
+func CheckDiskSpace(path string, requiredGB int) error {
+	if path == "" {
+		path = "."
+	}
+
+	var stat syscall.Statfs_t
+
+	if err := syscall.Statfs(path, &stat); err != nil {
+		// If we can't check, allow to proceed and let Docker handle it
+		return nil //nolint:nilerr // intentional - allow to proceed when check fails
+	}
+
+	// Available bytes = available blocks * block size
+	// #nosec G115 -- block size is always positive and fits in uint64
+	availableBytes := stat.Bavail * uint64(stat.Bsize)
+	// #nosec G115 -- requiredGB is validated to be positive
+	requiredBytes := uint64(requiredGB) * 1024 * 1024 * 1024
+
+	if availableBytes < requiredBytes {
+		availableGB := float64(availableBytes) / (1024 * 1024 * 1024)
+
+		return fmt.Errorf("%w: %.1f GB available, %d GB required", ErrInsufficientDiskSpace, availableGB, requiredGB)
+	}
+
 	return nil
+}
+
+// RetryWithBackoff executes a function with exponential backoff on failure.
+// The function should return (result, shouldRetry, error).
+//
+//nolint:gocognit // retry logic requires multiple conditions
+func RetryWithBackoff[T any](ctx context.Context, cfg RetryConfig, operation func() (T, bool, error)) (T, error) {
+	var result T
+
+	var lastErr error
+
+	backoff := cfg.InitialBackoff
+
+	for attempt := 0; attempt <= cfg.MaxRetries; attempt++ {
+		// Check context cancellation
+		select {
+		case <-ctx.Done():
+			return result, ctx.Err()
+		default:
+		}
+
+		var shouldRetry bool
+
+		result, shouldRetry, lastErr = operation()
+		if lastErr == nil {
+			return result, nil
+		}
+
+		if !shouldRetry || attempt >= cfg.MaxRetries {
+			return result, lastErr
+		}
+
+		// Add jitter to prevent thundering herd using crypto/rand for secure randomness
+		maxJitter := int64(backoff / 4)
+		jitterBig, _ := rand.Int(rand.Reader, big.NewInt(maxJitter))
+		jitter := time.Duration(jitterBig.Int64())
+		sleepDuration := backoff + jitter
+
+		select {
+		case <-ctx.Done():
+			return result, ctx.Err()
+		case <-time.After(sleepDuration):
+		}
+
+		// Increase backoff for next attempt
+		backoff = time.Duration(float64(backoff) * cfg.BackoffFactor)
+		if backoff > cfg.MaxBackoff {
+			backoff = cfg.MaxBackoff
+		}
+	}
+
+	return result, lastErr
 }

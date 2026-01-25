@@ -1,13 +1,22 @@
 package policy
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/mrz1836/go-fortress/guardian/validator"
 	"gopkg.in/yaml.v3"
+
+	"github.com/mrz1836/go-fortress/guardian/validator"
+)
+
+// Sentinel errors for exception validation.
+var (
+	errPolicyRequired    = errors.New("policy is required")
+	errReasonRequired    = errors.New("reason is required")
+	errCreatedAtRequired = errors.New("created_at is required")
 )
 
 // Exception allows bypassing a policy for specific files or patterns.
@@ -100,13 +109,13 @@ func (e *Exception) IsExpired() bool {
 // Validate checks if the exception configuration is valid.
 func (e *Exception) Validate() error {
 	if e.Policy == "" {
-		return fmt.Errorf("policy is required")
+		return errPolicyRequired
 	}
 	if e.Reason == "" {
-		return fmt.Errorf("reason is required")
+		return errReasonRequired
 	}
 	if e.CreatedAt.IsZero() {
-		return fmt.Errorf("created_at is required")
+		return errCreatedAtRequired
 	}
 	return nil
 }
