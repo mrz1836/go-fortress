@@ -70,6 +70,7 @@ env:
   # Tool versions (must match magefiles/magefile.go)
   ACT_VERSION: "v0.2.84"
   ACTIONLINT_VERSION: "v1.7.10"
+  MAGE_VERSION: "v1.15.0"
 
 jobs:
   # ----------------------------------------------------------------------------------
@@ -153,6 +154,11 @@ jobs:
           go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.ACTIONLINT_VERSION }}"
           actionlint --version
 
+      - name: Install mage
+        run: |
+          go install "github.com/magefile/mage@${{ env.MAGE_VERSION }}"
+          mage --version
+
       - name: Setup MAGE-X
         uses: ./.github/actions/setup-magex
         with:
@@ -215,6 +221,11 @@ jobs:
         run: |
           go install "github.com/rhysd/actionlint/cmd/actionlint@${{ env.ACTIONLINT_VERSION }}"
           actionlint --version
+
+      - name: Install mage
+        run: |
+          go install "github.com/magefile/mage@${{ env.MAGE_VERSION }}"
+          mage --version
 
       # Cache act binary for faster startup
       - name: Cache act binary
