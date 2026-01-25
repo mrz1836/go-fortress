@@ -1,4 +1,6 @@
 // Package main demonstrates lint failures for CI testing.
+// This code intentionally has compile errors (unused variables) to test lint detection.
+// NOTE: This module is excluded from CI testing via MAGE_X_TEST_EXCLUDE_MODULES.
 package main
 
 import "fmt"
