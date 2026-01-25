@@ -322,7 +322,7 @@ jobs:
           if-no-files-found: ignore
 
   # ----------------------------------------------------------------------------------
-  # Status Check
+  # Status Check and Detailed Summary
   # ----------------------------------------------------------------------------------
   status-check:
     name: Guardian Status
@@ -331,22 +331,231 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
+      actions: read
     steps:
-      - name: Build results summary
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download Guardian results
+        if: always()
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: guardian-results
+          path: ./results/
+        continue-on-error: true
+
+      - name: Build detailed results summary
         run: |
+          # Calculate timing
+          START_TIME="${{ github.event.workflow_run.created_at || github.event.pull_request.created_at || '' }}"
+          END_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
           {
-            echo "## Guardian CI Results"
+            echo "# 🛡️ Guardian CI Testing Report"
             echo ""
-            echo "| Job | Result |"
-            echo "|-----|--------|"
-            echo "| Load Environment | ${{ needs.load-env.result }} |"
-            echo "| Static Validation | ${{ needs.static.result }} |"
-            echo "| Guardian Scenarios | ${{ needs.guardian-scenarios.result }} |"
+            echo "_Generated at: ${END_TIME}_"
+            echo ""
+            echo "---"
             echo ""
 
+            # Job Status Overview
+            echo "## 📊 Job Status Overview"
+            echo ""
+            echo "| Job | Status | Result |"
+            echo "|-----|--------|--------|"
+
+            # Load Environment
+            LOAD_ENV_RESULT="${{ needs.load-env.result }}"
+            LOAD_ENV_ICON=$([[ "$LOAD_ENV_RESULT" == "success" ]] && echo "✅" || ([[ "$LOAD_ENV_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🔧 Load Environment | $LOAD_ENV_RESULT | $LOAD_ENV_ICON |"
+
+            # Static Validation
+            STATIC_RESULT="${{ needs.static.result }}"
+            STATIC_ICON=$([[ "$STATIC_RESULT" == "success" ]] && echo "✅" || ([[ "$STATIC_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🔍 Static Validation | $STATIC_RESULT | $STATIC_ICON |"
+
+            # Guardian Scenarios
+            SCENARIOS_RESULT="${{ needs.guardian-scenarios.result }}"
+            SCENARIOS_ICON=$([[ "$SCENARIOS_RESULT" == "success" ]] && echo "✅" || ([[ "$SCENARIOS_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🧪 Guardian Scenarios | $SCENARIOS_RESULT | $SCENARIOS_ICON |"
+
+            echo ""
+
+            # Check if Guardian is disabled
             if [[ "${{ needs.load-env.outputs.guardian-enabled }}" != "true" ]]; then
-              echo "> **Note**: Guardian is disabled. Set \`ENABLE_CI_GUARDIAN=true\` in \`.github/.env.custom\` to enable."
+              echo "> ⚠️ **Note**: Guardian is disabled. Set \`ENABLE_CI_GUARDIAN=true\` in \`.github/.env.custom\` to enable."
+              echo ""
             fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Process scenario results from JSONL file
+          JSONL_FILE="./results/ci-results.jsonl"
+          if [ -f "$JSONL_FILE" ]; then
+            {
+              echo ""
+              echo "---"
+              echo ""
+              echo "## 🧪 Scenario Results"
+              echo ""
+
+              # Count results
+              TOTAL=$(wc -l < "$JSONL_FILE" | tr -d ' ')
+              PASSED=$(grep -c '"status":"pass"' "$JSONL_FILE" 2>/dev/null || echo "0")
+              FAILED=$(grep -c '"status":"fail"' "$JSONL_FILE" 2>/dev/null || echo "0")
+              ERRORS=$(grep -c '"status":"error"' "$JSONL_FILE" 2>/dev/null || echo "0")
+              SKIPPED=$(grep -c '"status":"skip"' "$JSONL_FILE" 2>/dev/null || echo "0")
+
+              echo "### Summary: ${PASSED}/${TOTAL} scenarios passed"
+              echo ""
+
+              if [[ "$PASSED" -eq "$TOTAL" ]]; then
+                echo "🎉 **All scenarios passed!**"
+              else
+                echo "⚠️ **Some scenarios need attention**"
+              fi
+
+              echo ""
+              echo "| Metric | Count |"
+              echo "|--------|-------|"
+              echo "| ✅ Passed | $PASSED |"
+              echo "| ❌ Failed | $FAILED |"
+              echo "| 💥 Errors | $ERRORS |"
+              echo "| ⏭️ Skipped | $SKIPPED |"
+              echo "| **Total** | **$TOTAL** |"
+              echo ""
+
+              # Detailed results table
+              echo "### Detailed Results"
+              echo ""
+              echo "| Scenario | Category | Status | Duration | Details |"
+              echo "|----------|----------|--------|----------|---------|"
+
+              # Parse each line of the JSONL file
+              while IFS= read -r line; do
+                SCENARIO_ID=$(echo "$line" | jq -r '.scenario_id // "unknown"')
+                STATUS=$(echo "$line" | jq -r '.status // "unknown"')
+                DURATION=$(echo "$line" | jq -r '.duration // "N/A"')
+                ERROR=$(echo "$line" | jq -r '.error // ""')
+                MISSING=$(echo "$line" | jq -r '.missing_patterns // [] | join(", ")')
+
+                # Determine category from scenario ID prefix
+                CATEGORY="Other"
+                case "$SCENARIO_ID" in
+                  LINT-*) CATEGORY="Quality" ;;
+                  TEST-*) CATEGORY="Testing" ;;
+                  RACE-*) CATEGORY="Quality" ;;
+                  COV-*) CATEGORY="Coverage" ;;
+                  SEC-*) CATEGORY="Security" ;;
+                  VULN-*) CATEGORY="Security" ;;
+                  BENCH-*) CATEGORY="Quality" ;;
+                  FUZZ-*) CATEGORY="Quality" ;;
+                  PASS-*) CATEGORY="Quality" ;;
+                  FORK-*) CATEGORY="Fork PR" ;;
+                  SLSA-*) CATEGORY="Supply Chain" ;;
+                  SBOM-*) CATEGORY="Supply Chain" ;;
+                  ENV-*) CATEGORY="Config" ;;
+                  MATRIX-*) CATEGORY="Config" ;;
+                  CACHE-*) CATEGORY="Config" ;;
+                esac
+
+                # Format duration (convert nanoseconds to seconds if needed)
+                if [[ "$DURATION" =~ ^[0-9]+$ ]] && [[ "$DURATION" -gt 1000000000 ]]; then
+                  DURATION_SEC=$((DURATION / 1000000000))
+                  DURATION_DISPLAY="${DURATION_SEC}s"
+                elif [[ "$DURATION" =~ ^[0-9]+\.?[0-9]*s$ ]]; then
+                  DURATION_DISPLAY="$DURATION"
+                else
+                  DURATION_DISPLAY="$DURATION"
+                fi
+
+                # Status icon
+                STATUS_ICON=$([[ "$STATUS" == "pass" ]] && echo "✅" || ([[ "$STATUS" == "fail" ]] && echo "❌" || ([[ "$STATUS" == "error" ]] && echo "💥" || echo "⏭️")))
+
+                # Details
+                DETAILS=""
+                if [[ -n "$ERROR" ]]; then
+                  DETAILS="$ERROR"
+                elif [[ -n "$MISSING" ]]; then
+                  DETAILS="Missing: $MISSING"
+                fi
+
+                # Truncate details if too long
+                if [[ ${#DETAILS} -gt 50 ]]; then
+                  DETAILS="${DETAILS:0:47}..."
+                fi
+
+                echo "| $SCENARIO_ID | $CATEGORY | $STATUS_ICON $STATUS | $DURATION_DISPLAY | $DETAILS |"
+              done < "$JSONL_FILE"
+
+              echo ""
+
+              # Failure analysis section (if there are failures)
+              if [[ "$FAILED" -gt 0 ]] || [[ "$ERRORS" -gt 0 ]]; then
+                echo "---"
+                echo ""
+                echo "## 🔍 Failure Analysis"
+                echo ""
+
+                grep -E '"status":"(fail|error)"' "$JSONL_FILE" | while IFS= read -r line; do
+                  SCENARIO_ID=$(echo "$line" | jq -r '.scenario_id // "unknown"')
+                  STATUS=$(echo "$line" | jq -r '.status // "unknown"')
+                  ERROR=$(echo "$line" | jq -r '.error // "No error message"')
+                  MISSING=$(echo "$line" | jq -r '.missing_patterns // []')
+                  OUTPUT=$(echo "$line" | jq -r '.output // ""' | head -c 500)
+
+                  echo "### ❌ $SCENARIO_ID ($STATUS)"
+                  echo ""
+
+                  if [[ -n "$ERROR" ]] && [[ "$ERROR" != "No error message" ]] && [[ "$ERROR" != "null" ]]; then
+                    echo "**Error:** $ERROR"
+                    echo ""
+                  fi
+
+                  if [[ "$MISSING" != "[]" ]] && [[ "$MISSING" != "null" ]]; then
+                    echo "**Missing patterns:**"
+                    echo "$MISSING" | jq -r '.[]' | while read -r pattern; do
+                      echo "- \`$pattern\`"
+                    done
+                    echo ""
+                  fi
+
+                  if [[ -n "$OUTPUT" ]] && [[ "$OUTPUT" != "null" ]]; then
+                    echo "<details>"
+                    echo "<summary>Output (truncated)</summary>"
+                    echo ""
+                    echo '```'
+                    echo "$OUTPUT"
+                    echo '```'
+                    echo "</details>"
+                    echo ""
+                  fi
+                done
+              fi
+
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> ℹ️ No detailed scenario results available. Check the Guardian Scenarios job logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Configuration section
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "## ⚙️ Configuration"
+            echo ""
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Go Version | ${{ needs.load-env.outputs.go-primary-version }} |"
+            echo "| Runner | ubuntu-24.04 |"
+            echo "| Guardian Enabled | ${{ needs.load-env.outputs.guardian-enabled }} |"
+            echo "| Redis Enabled | ${{ needs.load-env.outputs.redis-enabled }} |"
+            echo "| Redis Version | ${{ needs.load-env.outputs.redis-version }} |"
+            echo ""
+            echo "---"
+            echo ""
+            echo "_Guardian CI Testing Framework - Validating workflows before they reach production._"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check for failures

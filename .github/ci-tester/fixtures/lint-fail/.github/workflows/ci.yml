@@ -1,3 +1,12 @@
+# CI workflow for lint-fail fixture
+# This fixture tests that lint failures are properly detected.
+#
+# IMPORTANT: The main.go file is generated dynamically at runtime to prevent
+# format auto-fixing tools (gofmt, gofumpt, IDE formatters) from "fixing" the
+# intentional violations. See main.go.reference for documentation.
+#
+# This workflow should FAIL - that's the expected behavior for Guardian testing.
+
 name: CI
 
 on:
@@ -15,13 +24,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+
+      # Generate main.go with intentional violations inline
+      - name: Generate broken source code
+        run: |
+          # Create main.go with unused variables (compile error)
+          # Note: Using printf to avoid heredoc indentation issues
+          printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tunusedVar := "this triggers lint failure"\n\tanotherUnused := 42\n\tfmt.Println("Hello, World!")\n}\n\nfunc UnusedFunction() {\n\tfmt.Println("I am never called")\n}\n' > main.go
+          echo "Generated main.go:"
+          cat main.go
+
       - name: Run go vet
         run: |
           echo "Running govet..."
           go vet ./...
+
       - name: Run go build
         run: go build ./...
 
@@ -30,29 +51,54 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+
+      # Generate main.go with intentional format violations
+      - name: Generate broken source code with format issues
+        run: |
+          # Create main.go with spaces instead of tabs (format violation)
+          # The badlyFormatted function uses 4 spaces instead of a tab
+          printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello")\n}\n\n// badlyFormatted uses spaces not tabs\nfunc badlyFormatted() string {\n    x := 1\n    return fmt.Sprintf("%%d", x)\n}\n' > main.go
+          echo "Generated main.go with format violations:"
+          cat main.go
+          echo ""
+          echo "Verifying format issues exist:"
+          gofmt -d main.go
+
       - name: Check formatting
         run: |
+          echo "Checking gofmt..."
           if [ -n "$(gofmt -l .)" ]; then
             echo "File is not properly formatted:"
             gofmt -l .
+            gofmt -d .
             exit 1
           fi
+          echo "All files formatted correctly"
 
   golangci-lint:
     name: Golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+
+      # Generate main.go with lint violations
+      - name: Generate broken source code
+        run: |
+          printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tunusedVar := "lint failure"\n\tfmt.Println("Hello")\n}\n\nfunc UnusedFunction() {\n\tfmt.Println("never called")\n}\n' > main.go
+
       - name: Install golangci-lint
         run: |
           echo "Installing golangci-lint..."
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.62.0
+
       - name: Run golangci-lint
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
@@ -64,11 +110,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+
+      # Generate main.go with staticcheck violations
+      - name: Generate broken source code
+        run: |
+          printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tunusedVar := "lint failure"\n\tfmt.Println("Hello")\n}\n\nfunc UnusedFunction() {\n\tfmt.Println("never called")\n}\n' > main.go
+
       - name: Install staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
+
       - name: Run staticcheck
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
