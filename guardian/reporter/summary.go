@@ -125,7 +125,7 @@ func (r *SummaryReporter) WriteFile(ctx context.Context, report *Report, path st
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	return r.Write(ctx, report, f)
 }
@@ -143,7 +143,7 @@ func (r *SummaryReporter) WriteToStepSummary(ctx context.Context, report *Report
 	if err != nil {
 		return fmt.Errorf("opening step summary file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	return r.Write(ctx, report, f)
 }
@@ -157,9 +157,10 @@ func severityIcon(s validator.Severity) string {
 		return ":warning:"
 	case validator.SeverityNote:
 		return ":information_source:"
-	default:
+	case validator.SeverityInfo:
 		return ":grey_question:"
 	}
+	return ":grey_question:"
 }
 
 // truncateString truncates a string to maxLen characters.

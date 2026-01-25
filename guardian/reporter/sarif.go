@@ -6,8 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/mrz1836/go-fortress/guardian/validator"
 	"github.com/owenrumney/go-sarif/v3/pkg/report/v210/sarif"
+
+	"github.com/mrz1836/go-fortress/guardian/validator"
 )
 
 // SARIFReporter writes SARIF 2.1.0 format output for GitHub Security integration.
@@ -125,7 +126,8 @@ func mapSeverityToSARIF(s validator.Severity) string {
 		return "warning"
 	case validator.SeverityNote:
 		return "note"
-	default:
+	case validator.SeverityInfo:
 		return "none"
 	}
+	return "none"
 }

@@ -84,11 +84,10 @@ func mapSeverityToCommand(s validator.Severity) string {
 		return "error"
 	case validator.SeverityWarning:
 		return "warning"
-	case validator.SeverityNote:
-		return "notice"
-	default:
+	case validator.SeverityNote, validator.SeverityInfo:
 		return "notice"
 	}
+	return "notice"
 }
 
 // escapeAnnotation escapes special characters in annotation messages.
