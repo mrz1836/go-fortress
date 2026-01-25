@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -67,6 +69,14 @@ func (r *ActRunner) CheckAvailable(ctx context.Context) error {
 // Run executes a workflow using act.
 func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error) {
 	start := time.Now()
+
+	// Make EventFile path absolute before changing working directory
+	if opts.EventFile != "" && !filepath.IsAbs(opts.EventFile) {
+		cwd, err := os.Getwd()
+		if err == nil {
+			opts.EventFile = filepath.Join(cwd, opts.EventFile)
+		}
+	}
 
 	args := r.buildArgs(opts)
 
@@ -163,9 +173,13 @@ func (r *ActRunner) EnsureImageAvailable(ctx context.Context, image string) erro
 func (r *ActRunner) buildArgs(opts RunOptions) []string {
 	args := []string{}
 
-	// Workflow file
+	// Workflow file - prepend .github/workflows/ if not already present
 	if opts.WorkflowFile != "" {
-		args = append(args, "--workflows", opts.WorkflowFile)
+		workflowPath := opts.WorkflowFile
+		if !strings.HasPrefix(workflowPath, ".github/workflows/") && !strings.HasPrefix(workflowPath, "/") {
+			workflowPath = ".github/workflows/" + workflowPath
+		}
+		args = append(args, "--workflows", workflowPath)
 	}
 
 	// Specific job

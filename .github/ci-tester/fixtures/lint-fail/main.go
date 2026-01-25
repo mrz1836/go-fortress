@@ -16,7 +16,7 @@ func main() {
 	fmt.Println("Hello, World!")
 }
 
-// badlyFormatted function has formatting issues (no space after func name for gofmt)
+// badlyFormatted function has formatting issues
 func badlyFormatted() string { return "bad" }
 
 // UnusedFunction is never called - triggers staticcheck

@@ -18,7 +18,7 @@ const (
 )
 
 // FakePrivateKey is a fake RSA private key for testing.
-// gitleaks:allow - This is a test fixture
+// This intentionally does NOT have gitleaks:allow to trigger detection
 const FakePrivateKey = `-----BEGIN RSA PRIVATE KEY-----
 MIIBogIBAAJBALRiMLAHudeSA2ai2E9c9A/LPWx/tSTfefMLXLSB9xPokEXAMPLE
 wBXN5K+9VBU+fUKqFiGmZlSfvk0EXAMPLEsEXAMPLECAwEAAQJAYEXAMPLE
