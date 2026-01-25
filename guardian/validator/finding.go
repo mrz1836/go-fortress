@@ -43,6 +43,7 @@ type Finding struct {
 // Severity levels for findings.
 type Severity string
 
+// Severity constants define finding severity levels.
 const (
 	SeverityError   Severity = "error"
 	SeverityWarning Severity = "warning"
@@ -53,6 +54,7 @@ const (
 // FindingSource identifies what tool generated the finding.
 type FindingSource string
 
+// FindingSource constants define available finding sources.
 const (
 	SourceActionlint  FindingSource = "actionlint"
 	SourcePolicy      FindingSource = "policy"

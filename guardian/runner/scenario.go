@@ -67,6 +67,7 @@ type ExpectedResult struct {
 // ExpectedStatus represents expected workflow outcome.
 type ExpectedStatus string
 
+// ExpectedStatus constants define possible workflow outcomes.
 const (
 	StatusSuccess ExpectedStatus = "success"
 	StatusFailure ExpectedStatus = "failure"
@@ -140,12 +141,12 @@ func (r *ScenarioRunner) executeSequential(ctx context.Context, scenarios []*Sce
 	for _, s := range scenarios {
 		select {
 		case <-ctx.Done():
-			// Context cancelled, skip remaining scenarios
+			// Context canceled, skip remaining scenarios
 			for _, remaining := range scenarios[len(results):] {
 				results = append(results, reporter.ScenarioResult{
 					ScenarioID: remaining.ID,
 					Status:     reporter.ResultSkip,
-					Error:      "context cancelled",
+					Error:      "context canceled",
 				})
 			}
 			return results, ctx.Err()
@@ -202,7 +203,7 @@ func (r *ScenarioRunner) executeParallel(ctx context.Context, scenarios []*Scena
 						result: reporter.ScenarioResult{
 							ScenarioID: item.scenario.ID,
 							Status:     reporter.ResultSkip,
-							Error:      "context cancelled",
+							Error:      "context canceled",
 						},
 					}
 					continue

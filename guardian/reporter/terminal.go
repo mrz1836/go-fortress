@@ -67,7 +67,7 @@ func (r *TerminalReporter) Write(_ context.Context, report *Report, w io.Writer)
 
 // WriteFile outputs the report to a file.
 func (r *TerminalReporter) WriteFile(ctx context.Context, report *Report, path string) error {
-	f, err := os.Create(path)
+	f, err := os.Create(path) //nolint:gosec // path from trusted caller
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
@@ -136,7 +136,8 @@ func (r *TerminalReporter) WriteScenarioList(w io.Writer, scenarios []ScenarioLi
 			}
 
 			// Format: ID - Description [tags]
-			statusIcon := ""
+			var statusIcon string
+
 			if s.ExpectedStatus == "failure" {
 				statusIcon = r.red("✗")
 			} else {

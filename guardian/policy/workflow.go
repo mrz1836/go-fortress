@@ -109,7 +109,7 @@ type ScheduleTrigger struct {
 
 // ParseWorkflow reads and parses a workflow file.
 func ParseWorkflow(path string) (*Workflow, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path from trusted validator input
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}

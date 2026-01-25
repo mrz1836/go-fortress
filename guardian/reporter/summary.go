@@ -121,10 +121,11 @@ func (r *SummaryReporter) Write(_ context.Context, report *Report, w io.Writer) 
 
 // WriteFile outputs the report to a file.
 func (r *SummaryReporter) WriteFile(ctx context.Context, report *Report, path string) error {
-	f, err := os.Create(path)
+	f, err := os.Create(path) //nolint:gosec // path from trusted caller
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
+
 	defer func() { _ = f.Close() }()
 
 	return r.Write(ctx, report, f)
@@ -139,7 +140,7 @@ func (r *SummaryReporter) WriteToStepSummary(ctx context.Context, report *Report
 		return nil
 	}
 
-	f, err := os.OpenFile(summaryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(summaryFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600) //nolint:gosec // summary file for GitHub Actions
 	if err != nil {
 		return fmt.Errorf("opening step summary file: %w", err)
 	}

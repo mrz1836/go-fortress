@@ -50,7 +50,7 @@ type ExceptionConfig struct {
 
 // LoadExceptionConfig loads exceptions from a YAML file.
 func LoadExceptionConfig(path string) (*ExceptionConfig, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path is from trusted config
 	if err != nil {
 		if os.IsNotExist(err) {
 			return &ExceptionConfig{}, nil

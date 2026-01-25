@@ -338,6 +338,8 @@ func (g *Guardian) findWorkflows() ([]string, error) {
 }
 
 // executeScenarios runs multiple scenarios with parallelism control.
+//
+//nolint:unparam // error return reserved for future parallel execution support
 func (g *Guardian) executeScenarios(ctx context.Context, scenarioList []*scenarios.Scenario) ([]reporter.ScenarioResult, error) {
 	results := make([]reporter.ScenarioResult, 0, len(scenarioList))
 

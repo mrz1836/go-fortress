@@ -30,7 +30,7 @@ func (v *SchemaValidator) Validate(_ context.Context, path string) ([]Finding, e
 		return nil, nil
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path from trusted validator input
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}

@@ -39,6 +39,7 @@ type Report struct {
 // RunMode indicates what type of validation was performed.
 type RunMode string
 
+// RunMode constants define the different validation modes.
 const (
 	ModeStatic   RunMode = "static"
 	ModeTest     RunMode = "test"
@@ -95,6 +96,7 @@ type ScenarioResult struct {
 // ResultStatus indicates scenario outcome.
 type ResultStatus string
 
+// ResultStatus constants define possible scenario outcomes.
 const (
 	ResultPass  ResultStatus = "pass"
 	ResultFail  ResultStatus = "fail"

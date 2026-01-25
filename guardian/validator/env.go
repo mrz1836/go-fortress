@@ -108,7 +108,7 @@ func (v *EnvValidator) validateEnvLine(path string, lineNum int, line, section s
 }
 
 // checkNamingConvention validates variable naming follows conventions.
-func (v *EnvValidator) checkNamingConvention(path string, lineNum int, varName, section string) []Finding {
+func (v *EnvValidator) checkNamingConvention(path string, lineNum int, varName, _ string) []Finding {
 	var findings []Finding
 
 	// Must be UPPER_SNAKE_CASE
@@ -122,12 +122,6 @@ func (v *EnvValidator) checkNamingConvention(path string, lineNum int, varName, 
 			Source:     SourceEnv,
 			Suggestion: fmt.Sprintf("Rename to %s", toUpperSnakeCase(varName)),
 		})
-	}
-
-	// Feature toggles should start with ENABLE_
-	if isBooleanValue(varName) && !strings.HasPrefix(varName, "ENABLE_") && !isVersionVar(varName) {
-		// Check if this looks like a feature toggle based on value patterns
-		// This is a heuristic - we only flag obvious cases
 	}
 
 	// Version variables should end with _VERSION
@@ -208,10 +202,15 @@ func extractSectionName(comment string) string {
 
 func isUpperSnakeCase(s string) bool {
 	for _, c := range s {
-		if !((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+		isUpper := c >= 'A' && c <= 'Z'
+		isDigit := c >= '0' && c <= '9'
+		isUnderscore := c == '_'
+
+		if !isUpper && !isDigit && !isUnderscore {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -232,18 +231,6 @@ func toUpperSnakeCase(s string) string {
 		}
 	}
 	return result.String()
-}
-
-func isBooleanValue(varName string) bool {
-	return strings.HasPrefix(varName, "ENABLE_") ||
-		strings.HasPrefix(varName, "DISABLE_") ||
-		strings.HasPrefix(varName, "USE_") ||
-		strings.HasPrefix(varName, "IS_") ||
-		strings.HasPrefix(varName, "HAS_")
-}
-
-func isVersionVar(varName string) bool {
-	return strings.HasSuffix(varName, "_VERSION")
 }
 
 func isLikelyVersion(varName string) bool {

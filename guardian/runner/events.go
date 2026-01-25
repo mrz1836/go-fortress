@@ -10,6 +10,7 @@ import (
 // EventType represents GitHub event types.
 type EventType string
 
+// EventType constants define supported GitHub event types.
 const (
 	EventPush              EventType = "push"
 	EventPullRequest       EventType = "pull_request"
@@ -171,7 +172,7 @@ func WriteEventFile(event interface{}, dir string) (string, error) {
 	}
 
 	path := filepath.Join(dir, "event.json")
-	if err := os.WriteFile(path, data, 0o644); err != nil {
+	if err := os.WriteFile(path, data, 0o600); err != nil {
 		return "", fmt.Errorf("writing event file: %w", err)
 	}
 
@@ -180,7 +181,7 @@ func WriteEventFile(event interface{}, dir string) (string, error) {
 
 // LoadEventFile reads an event payload from a file.
 func LoadEventFile(path string) (map[string]interface{}, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path from trusted caller
 	if err != nil {
 		return nil, fmt.Errorf("reading event file: %w", err)
 	}

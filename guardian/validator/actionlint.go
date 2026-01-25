@@ -1,3 +1,4 @@
+// Package validator provides validation for GitHub Actions workflows.
 package validator
 
 import (

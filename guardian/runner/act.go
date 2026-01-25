@@ -1,3 +1,4 @@
+// Package runner provides workflow execution using act.
 package runner
 
 import (
@@ -57,7 +58,7 @@ func (r *ActRunner) CheckAvailable(ctx context.Context) error {
 
 	// Check Docker is running
 	if err := r.checkDockerRunning(ctx); err != nil {
-		return fmt.Errorf("Docker not available: %w", err)
+		return fmt.Errorf("docker not available: %w", err)
 	}
 
 	return nil
@@ -69,7 +70,7 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 
 	args := r.buildArgs(opts)
 
-	cmd := exec.CommandContext(ctx, r.path, args...)
+	cmd := exec.CommandContext(ctx, r.path, args...) //nolint:gosec // r.path is validated act binary
 	if opts.WorkingDir != "" {
 		cmd.Dir = opts.WorkingDir
 	}
@@ -202,7 +203,7 @@ func (r *ActRunner) buildArgs(opts RunOptions) []string {
 
 // checkActInstalled verifies act is available.
 func (r *ActRunner) checkActInstalled(ctx context.Context) error {
-	cmd := exec.CommandContext(ctx, r.path, "--version")
+	cmd := exec.CommandContext(ctx, r.path, "--version") //nolint:gosec // r.path is validated act binary
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("act not found at %s: %w", r.path, err)
 	}
@@ -214,7 +215,7 @@ func (r *ActRunner) checkActInstalled(ctx context.Context) error {
 func (r *ActRunner) checkDockerRunning(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "docker", "info")
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Docker not running: %w", err)
+		return fmt.Errorf("docker not running: %w", err)
 	}
 
 	return nil
@@ -270,8 +271,6 @@ func CheckDiskSpace(path string, requiredGB int) error {
 
 // RetryWithBackoff executes a function with exponential backoff on failure.
 // The function should return (result, shouldRetry, error).
-//
-//nolint:gocognit // retry logic requires multiple conditions
 func RetryWithBackoff[T any](ctx context.Context, cfg RetryConfig, operation func() (T, bool, error)) (T, error) {
 	var result T
 

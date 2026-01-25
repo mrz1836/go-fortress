@@ -80,70 +80,62 @@ func DefaultConfig() *Config {
 func LoadFromEnv() *Config {
 	cfg := DefaultConfig()
 
-	// Tool paths
-	if v := os.Getenv("GUARDIAN_ACT_PATH"); v != "" {
-		cfg.ActPath = v
-	}
-	if v := os.Getenv("GUARDIAN_ACTIONLINT_PATH"); v != "" {
-		cfg.ActionlintPath = v
-	}
+	// Load string configurations
+	loadStringEnv("GUARDIAN_ACT_PATH", &cfg.ActPath)
+	loadStringEnv("GUARDIAN_ACTIONLINT_PATH", &cfg.ActionlintPath)
+	loadStringEnv("GUARDIAN_WORKFLOWS_DIR", &cfg.WorkflowsDir)
+	loadStringEnv("GUARDIAN_FIXTURES_DIR", &cfg.FixturesDir)
+	loadStringEnv("GUARDIAN_OUTPUT_DIR", &cfg.OutputDir)
+	loadStringEnv("GUARDIAN_EXCEPTIONS_FILE", &cfg.ExceptionsFile)
+	loadStringEnv("GUARDIAN_SARIF_OUTPUT", &cfg.SARIFOutput)
+	loadStringEnv("GUARDIAN_JSONL_OUTPUT", &cfg.JSONLOutput)
 
-	// Directories
-	if v := os.Getenv("GUARDIAN_WORKFLOWS_DIR"); v != "" {
-		cfg.WorkflowsDir = v
-	}
-	if v := os.Getenv("GUARDIAN_FIXTURES_DIR"); v != "" {
-		cfg.FixturesDir = v
-	}
-	if v := os.Getenv("GUARDIAN_OUTPUT_DIR"); v != "" {
-		cfg.OutputDir = v
-	}
+	// Load integer configurations
+	loadIntEnv("GUARDIAN_PARALLEL_SCENARIOS", &cfg.ParallelScenarios)
 
-	// Execution settings
-	if v := os.Getenv("GUARDIAN_PARALLEL_SCENARIOS"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			cfg.ParallelScenarios = n
-		}
-	}
-	if v := os.Getenv("GUARDIAN_SCENARIO_TIMEOUT"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.ScenarioTimeout = d
-		}
-	}
-	if v := os.Getenv("GUARDIAN_STATIC_TIMEOUT"); v != "" {
-		if d, err := time.ParseDuration(v); err == nil {
-			cfg.StaticTimeout = d
-		}
-	}
+	// Load duration configurations
+	loadDurationEnv("GUARDIAN_SCENARIO_TIMEOUT", &cfg.ScenarioTimeout)
+	loadDurationEnv("GUARDIAN_STATIC_TIMEOUT", &cfg.StaticTimeout)
 
-	// Output configuration
-	if v := os.Getenv("GUARDIAN_EXCEPTIONS_FILE"); v != "" {
-		cfg.ExceptionsFile = v
-	}
-	if v := os.Getenv("GUARDIAN_SARIF_OUTPUT"); v != "" {
-		cfg.SARIFOutput = v
-	}
-	if v := os.Getenv("GUARDIAN_JSONL_OUTPUT"); v != "" {
-		cfg.JSONLOutput = v
-	}
-
-	// Debug settings
-	if v := os.Getenv("GUARDIAN_VERBOSE"); v != "" {
-		cfg.Verbose = parseBool(v)
-	}
-	if v := os.Getenv("GUARDIAN_DRY_RUN"); v != "" {
-		cfg.DryRun = parseBool(v)
-	}
-	if v := os.Getenv("GUARDIAN_KEEP_CONTAINERS"); v != "" {
-		cfg.KeepContainers = parseBool(v)
-	}
-
-	// Policy configuration
-	if v := os.Getenv("GUARDIAN_POLICY_STRICT"); v != "" {
-		cfg.PolicyStrict = parseBool(v)
-	}
+	// Load boolean configurations
+	loadBoolEnv("GUARDIAN_VERBOSE", &cfg.Verbose)
+	loadBoolEnv("GUARDIAN_DRY_RUN", &cfg.DryRun)
+	loadBoolEnv("GUARDIAN_KEEP_CONTAINERS", &cfg.KeepContainers)
+	loadBoolEnv("GUARDIAN_POLICY_STRICT", &cfg.PolicyStrict)
 
 	return cfg
+}
+
+// loadStringEnv loads a string environment variable if set.
+func loadStringEnv(key string, target *string) {
+	if v := os.Getenv(key); v != "" {
+		*target = v
+	}
+}
+
+// loadIntEnv loads an integer environment variable if set and valid.
+func loadIntEnv(key string, target *int) {
+	if v := os.Getenv(key); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			*target = n
+		}
+	}
+}
+
+// loadDurationEnv loads a duration environment variable if set and valid.
+func loadDurationEnv(key string, target *time.Duration) {
+	if v := os.Getenv(key); v != "" {
+		if d, err := time.ParseDuration(v); err == nil {
+			*target = d
+		}
+	}
+}
+
+// loadBoolEnv loads a boolean environment variable if set.
+func loadBoolEnv(key string, target *bool) {
+	if v := os.Getenv(key); v != "" {
+		*target = parseBool(v)
+	}
 }
 
 // parseBool parses a string as a boolean value.

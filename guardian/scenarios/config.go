@@ -1,8 +1,9 @@
+// Package scenarios provides CI test scenario definitions.
 package scenarios
 
 import "time"
 
-// Config scenarios test workflow configuration validation.
+// registerConfigScenarios adds config validation test scenarios.
 
 func registerConfigScenarios(r *Registry) {
 	// MATRIX-001: Matrix expansion validation

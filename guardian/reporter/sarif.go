@@ -25,6 +25,8 @@ func (r *SARIFReporter) Name() string {
 }
 
 // Write outputs the report in SARIF format.
+//
+//nolint:gocognit // report generation logic
 func (r *SARIFReporter) Write(_ context.Context, report *Report, w io.Writer) error {
 	sarifReport := sarif.NewReport()
 
@@ -108,10 +110,11 @@ func (r *SARIFReporter) Write(_ context.Context, report *Report, w io.Writer) er
 
 // WriteFile outputs the report to a file in SARIF format.
 func (r *SARIFReporter) WriteFile(ctx context.Context, report *Report, path string) error {
-	f, err := os.Create(path)
+	f, err := os.Create(path) //nolint:gosec // path from trusted caller
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
+
 	defer func() { _ = f.Close() }()
 
 	return r.Write(ctx, report, f)

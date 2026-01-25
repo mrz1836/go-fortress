@@ -25,15 +25,15 @@ func (v *DeprecationValidator) Name() string {
 
 // Validate checks for deprecated actions and runners in workflow files.
 func (v *DeprecationValidator) Validate(_ context.Context, workflowPath string) ([]Finding, error) {
-	data, err := os.ReadFile(workflowPath)
+	data, err := os.ReadFile(workflowPath) //nolint:gosec // path from trusted validator input
 	if err != nil {
 		return nil, fmt.Errorf("reading file: %w", err)
 	}
 
 	var workflow workflowYAML
 	if err := yaml.Unmarshal(data, &workflow); err != nil {
-		// Skip files that can't be parsed
-		return nil, nil
+		// Skip files that can't be parsed (intentional: not all yaml files are workflows)
+		return nil, nil //nolint:nilerr // intentionally skip unparseable files
 	}
 
 	var findings []Finding
@@ -67,7 +67,9 @@ type stepYAML struct {
 	Uses string `yaml:"uses"`
 }
 
-// Deprecated runners and their replacements
+// Deprecated runners and their replacements.
+//
+//nolint:gochecknoglobals // intentional lookup table
 var deprecatedRunners = map[string]string{
 	"ubuntu-18.04": "ubuntu-22.04 or ubuntu-24.04",
 	"ubuntu-16.04": "ubuntu-22.04 or ubuntu-24.04",
@@ -77,7 +79,9 @@ var deprecatedRunners = map[string]string{
 	"windows-2019": "windows-2022 or windows-2025",
 }
 
-// Deprecated actions and their replacements
+// Deprecated actions and their replacements.
+//
+//nolint:gochecknoglobals // intentional lookup table
 var deprecatedActions = map[string]deprecatedAction{
 	"actions/checkout@v1": {
 		replacement: "actions/checkout@v4",
@@ -275,9 +279,14 @@ func normalizeActionRef(uses string) string {
 // isHex checks if a string contains only hexadecimal characters.
 func isHex(s string) bool {
 	for _, c := range s {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+		isDigit := c >= '0' && c <= '9'
+		isLowerHex := c >= 'a' && c <= 'f'
+		isUpperHex := c >= 'A' && c <= 'F'
+
+		if !isDigit && !isLowerHex && !isUpperHex {
 			return false
 		}
 	}
+
 	return true
 }

@@ -53,6 +53,7 @@ type Scenario struct {
 // Category groups scenarios by type.
 type Category string
 
+// Category constants define scenario groupings.
 const (
 	CategoryQuality     Category = "Quality"
 	CategoryTesting     Category = "Testing"
@@ -89,6 +90,7 @@ type ExpectedResult struct {
 // ExpectedStatus represents the expected workflow status.
 type ExpectedStatus string
 
+// ExpectedStatus constants define expected workflow statuses.
 const (
 	StatusSuccess ExpectedStatus = "success"
 	StatusFailure ExpectedStatus = "failure"

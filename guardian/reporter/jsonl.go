@@ -81,10 +81,11 @@ func (r *JSONLReporter) Write(_ context.Context, report *Report, w io.Writer) er
 
 // WriteFile outputs the report to a file in JSONL format.
 func (r *JSONLReporter) WriteFile(ctx context.Context, report *Report, path string) error {
-	f, err := os.Create(path)
+	f, err := os.Create(path) //nolint:gosec // path from trusted caller
 	if err != nil {
 		return fmt.Errorf("creating file: %w", err)
 	}
+
 	defer func() { _ = f.Close() }()
 
 	return r.Write(ctx, report, f)

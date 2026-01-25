@@ -25,13 +25,15 @@ type Policy struct {
 	Tags []string
 
 	// Check is the function that validates a workflow.
-	Check PolicyCheckFunc
+	Check CheckFunc
 }
 
-// PolicyCheckFunc is the signature for policy check functions.
-type PolicyCheckFunc func(workflow *Workflow) []validator.Finding
+// CheckFunc is the signature for policy check functions.
+type CheckFunc func(workflow *Workflow) []validator.Finding
 
 // SHAPinnedActions requires all actions to be pinned to full commit SHA.
+//
+//nolint:gochecknoglobals // policy definitions are intentionally global
 var SHAPinnedActions = &Policy{
 	ID:          "sha-pinned-actions",
 	Severity:    validator.SeverityError,
@@ -42,6 +44,8 @@ var SHAPinnedActions = &Policy{
 }
 
 // ExplicitPermissions requires workflows to declare explicit permissions.
+//
+//nolint:gochecknoglobals // policy definitions are intentionally global
 var ExplicitPermissions = &Policy{
 	ID:          "explicit-permissions",
 	Severity:    validator.SeverityWarning,
@@ -52,6 +56,8 @@ var ExplicitPermissions = &Policy{
 }
 
 // NoDangerousWorkflows prevents dangerous pull_request_target patterns.
+//
+//nolint:gochecknoglobals // policy definitions are intentionally global
 var NoDangerousWorkflows = &Policy{
 	ID:          "no-dangerous-workflows",
 	Severity:    validator.SeverityError,
@@ -62,6 +68,8 @@ var NoDangerousWorkflows = &Policy{
 }
 
 // NoSecretLogging prevents secrets from being logged.
+//
+//nolint:gochecknoglobals // policy definitions are intentionally global
 var NoSecretLogging = &Policy{
 	ID:          "no-secret-logging",
 	Severity:    validator.SeverityError,
@@ -72,6 +80,8 @@ var NoSecretLogging = &Policy{
 }
 
 // ConcurrencyDefined recommends concurrency configuration.
+//
+//nolint:gochecknoglobals // policy definitions are intentionally global
 var ConcurrencyDefined = &Policy{
 	ID:          "concurrency-defined",
 	Severity:    validator.SeverityWarning,
@@ -82,6 +92,8 @@ var ConcurrencyDefined = &Policy{
 }
 
 // MinimalPermissions recommends least-privilege permissions.
+//
+//nolint:gochecknoglobals // policy definitions are intentionally global
 var MinimalPermissions = &Policy{
 	ID:          "minimal-permissions",
 	Severity:    validator.SeverityWarning,
@@ -91,10 +103,10 @@ var MinimalPermissions = &Policy{
 	Check:       checkMinimalPermissions,
 }
 
-// SHA pattern matches a 40-character hex string (full commit SHA)
+// SHA pattern matches a 40-character hex string (full commit SHA).
 var shaPattern = regexp.MustCompile(`^[a-f0-9]{40}$`)
 
-// Action reference pattern: owner/repo@ref or owner/repo/path@ref
+// Action reference pattern: owner/repo@ref or owner/repo/path@ref.
 var actionRefPattern = regexp.MustCompile(`^([^@]+)@(.+)$`)
 
 func checkSHAPinnedActions(w *Workflow) []validator.Finding {
@@ -221,7 +233,9 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 	return findings
 }
 
-// secretPatterns matches common patterns for logging secrets
+// secretPatterns matches common patterns for logging secrets.
+//
+//nolint:gochecknoglobals // compiled regex patterns for reuse
 var secretPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`echo.*\$\{\{.*secrets\.`),
 	regexp.MustCompile(`echo.*\$secrets\.`),

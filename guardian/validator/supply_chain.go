@@ -194,8 +194,6 @@ func (v *SupplyChainValidator) checkBuildIsolation(path, content string) []Findi
 }
 
 // checkPinnedDependencies verifies dependencies are pinned to digests.
-//
-//nolint:gocognit // validation logic requires multiple checks
 func (v *SupplyChainValidator) checkPinnedDependencies(path, content string) []Finding {
 	var findings []Finding
 
