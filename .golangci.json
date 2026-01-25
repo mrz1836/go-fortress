@@ -215,11 +215,11 @@
     },
     "run": {
         "allow-parallel-runners": true,
-        "build-tags": [
-            "mage"
-        ],
         "concurrency": 8,
         "issues-exit-code": 1,
+        "skip-files": [
+            "magefile.go"
+        ],
         "tests": true
     },
     "severity": {
