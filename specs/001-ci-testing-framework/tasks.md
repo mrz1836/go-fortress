@@ -28,12 +28,12 @@ Based on plan.md structure:
 
 **Purpose**: Initialize project structure, dependencies, and configuration
 
-- [ ] T001 Update go.mod to add required dependencies (actionlint, go-sarif) in go.mod
-- [ ] T002 Create guardian package directory structure per plan.md
-- [ ] T003 [P] Create guardian/guardian.go with package entry point and public API stub
-- [ ] T004 [P] Create guardian/config.go with Config struct and DefaultConfig() function
-- [ ] T005 [P] Add Guardian environment variables to .env.base (ENABLE_CI_GUARDIAN, tool versions, settings)
-- [ ] T006 [P] Create .github/guardian.yaml with empty exceptions config structure
+- [X] T001 Update go.mod to add required dependencies (actionlint, go-sarif) in go.mod
+- [X] T002 Create guardian package directory structure per plan.md
+- [X] T003 [P] Create guardian/guardian.go with package entry point and public API stub
+- [X] T004 [P] Create guardian/config.go with Config struct and DefaultConfig() function
+- [X] T005 [P] Add Guardian environment variables to .env.base (ENABLE_CI_GUARDIAN, tool versions, settings)
+- [X] T006 [P] Create .github/guardian.yaml with empty exceptions config structure
 
 **Quality Gate**: Run `go-pre-commit --all-files && magex format:fix && magex lint` after this phase
 
@@ -45,15 +45,15 @@ Based on plan.md structure:
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Implement config loading from environment in guardian/config.go (parse GUARDIAN_* env vars)
-- [ ] T008 [P] Create guardian/validator/finding.go with Finding struct and Severity constants
-- [ ] T009 [P] Create guardian/validator/validator.go with Validator interface and ValidatorRegistry
-- [ ] T010 [P] Create guardian/reporter/report.go with Report, StaticResults, ScenarioResult structs
-- [ ] T011 [P] Create guardian/reporter/reporter.go with Reporter interface and ReporterRegistry
-- [ ] T012 Create guardian/policy/workflow.go with Workflow, Job, Step, Permissions structs for parsed workflows
-- [ ] T013 Create MAGE-X ci namespace skeleton in magefiles/ci.go with Ci mg.Namespace type
-- [ ] T014 [P] Create testdata/guardian/events/ directory with sample push.json event payload
-- [ ] T015 [P] Create testdata/guardian/workflows/ directory with sample valid and invalid workflow files
+- [X] T007 Implement config loading from environment in guardian/config.go (parse GUARDIAN_* env vars)
+- [X] T008 [P] Create guardian/validator/finding.go with Finding struct and Severity constants
+- [X] T009 [P] Create guardian/validator/validator.go with Validator interface and ValidatorRegistry
+- [X] T010 [P] Create guardian/reporter/report.go with Report, StaticResults, ScenarioResult structs
+- [X] T011 [P] Create guardian/reporter/reporter.go with Reporter interface and ReporterRegistry
+- [X] T012 Create guardian/policy/workflow.go with Workflow, Job, Step, Permissions structs for parsed workflows
+- [X] T013 Create MAGE-X ci namespace skeleton in magefiles/ci.go with Ci mg.Namespace type
+- [X] T014 [P] Create testdata/guardian/events/ directory with sample push.json event payload
+- [X] T015 [P] Create testdata/guardian/workflows/ directory with sample valid and invalid workflow files
 
 **Checkpoint**: Foundation ready - user story implementation can now begin
 
@@ -69,23 +69,23 @@ Based on plan.md structure:
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement actionlint wrapper in guardian/validator/actionlint.go using Go API
-- [ ] T017 [US1] Implement error type mapping from actionlint.Error to Finding in guardian/validator/actionlint.go
-- [ ] T018 [P] [US1] Implement action.yml schema validation in guardian/validator/schema.go
-- [ ] T019 [P] [US1] Implement deprecated action/runner detection in guardian/validator/deprecation.go
-- [ ] T020 [US1] Create guardian/policy/engine.go with PolicyEngine interface and basic implementation
-- [ ] T021 [US1] Create guardian/policy/rules.go with Policy struct and PolicyCheckFunc type
-- [ ] T022 [US1] Implement sha-pinned-actions policy rule in guardian/policy/rules.go
-- [ ] T023 [P] [US1] Implement explicit-permissions policy rule in guardian/policy/rules.go
-- [ ] T024 [P] [US1] Implement no-dangerous-workflows policy rule (pull_request_target detection) in guardian/policy/rules.go
-- [ ] T025 [P] [US1] Implement no-secret-logging policy rule in guardian/policy/rules.go
-- [ ] T026 [P] [US1] Implement concurrency-defined policy rule in guardian/policy/rules.go
-- [ ] T027 [US1] Create guardian/policy/exceptions.go with Exception struct and ExceptionConfig loading
-- [ ] T028 [US1] Implement exception matching logic in guardian/policy/exceptions.go (glob patterns, expiration)
-- [ ] T029 [US1] Implement RunStatic method in guardian/guardian.go orchestrating validators and policy engine
-- [ ] T030 [US1] Implement terminal reporter for static results in guardian/reporter/terminal.go
-- [ ] T031 [US1] Implement ci:static MAGE-X command in magefiles/ci.go calling Guardian.RunStatic
-- [ ] T121 [US1] Implement .env.base schema validator in guardian/validator/env.go (type validation, required fields, naming conventions per FR-013)
+- [X] T016 [US1] Implement actionlint wrapper in guardian/validator/actionlint.go using Go API
+- [X] T017 [US1] Implement error type mapping from actionlint.Error to Finding in guardian/validator/actionlint.go
+- [X] T018 [P] [US1] Implement action.yml schema validation in guardian/validator/schema.go
+- [X] T019 [P] [US1] Implement deprecated action/runner detection in guardian/validator/deprecation.go
+- [X] T020 [US1] Create guardian/policy/engine.go with PolicyEngine interface and basic implementation
+- [X] T021 [US1] Create guardian/policy/rules.go with Policy struct and PolicyCheckFunc type
+- [X] T022 [US1] Implement sha-pinned-actions policy rule in guardian/policy/rules.go
+- [X] T023 [P] [US1] Implement explicit-permissions policy rule in guardian/policy/rules.go
+- [X] T024 [P] [US1] Implement no-dangerous-workflows policy rule (pull_request_target detection) in guardian/policy/rules.go
+- [X] T025 [P] [US1] Implement no-secret-logging policy rule in guardian/policy/rules.go
+- [X] T026 [P] [US1] Implement concurrency-defined policy rule in guardian/policy/rules.go
+- [X] T027 [US1] Create guardian/policy/exceptions.go with Exception struct and ExceptionConfig loading
+- [X] T028 [US1] Implement exception matching logic in guardian/policy/exceptions.go (glob patterns, expiration)
+- [X] T029 [US1] Implement RunStatic method in guardian/guardian.go orchestrating validators and policy engine
+- [X] T030 [US1] Implement terminal reporter for static results in guardian/reporter/terminal.go
+- [X] T031 [US1] Implement ci:static MAGE-X command in magefiles/ci.go calling Guardian.RunStatic
+- [X] T121 [US1] Implement .env.base schema validator in guardian/validator/env.go (type validation, required fields, naming conventions per FR-013)
 
 **Checkpoint**: User Story 1 complete - `magex ci:static` should validate workflows in < 2s
 
@@ -101,31 +101,31 @@ Based on plan.md structure:
 
 ### Implementation for User Story 2
 
-- [ ] T032 [US2] Create guardian/runner/runner.go with Runner interface
-- [ ] T033 [US2] Implement act availability check in guardian/runner/act.go (CheckAvailable method)
-- [ ] T034 [US2] Implement act CLI wrapper in guardian/runner/act.go (Run method with subprocess invocation)
-- [ ] T035 [US2] Implement RunOptions and RunResult types in guardian/runner/runner.go
-- [ ] T036 [US2] Create guardian/runner/events.go for GitHub event payload injection helpers
-- [ ] T037 [US2] Create guardian/scenarios/scenarios.go with Scenario struct and Category constants
-- [ ] T038 [US2] Create guardian/scenarios/registry.go with scenario registry and lookup functions
-- [ ] T039 [US2] Create guardian/runner/scenario.go with scenario execution logic and result validation
-- [ ] T040 [US2] Implement log pattern matching for ExpectedResult validation in guardian/runner/scenario.go
-- [ ] T041 [P] [US2] Create fixture .github/ci-tester/fixtures/lint-fail/ with go.mod, main.go (unused var), ci.yml
-- [ ] T042 [P] [US2] Create fixture .github/ci-tester/fixtures/test-fail/ with go.mod, main.go, main_test.go (failing assert), ci.yml
-- [ ] T043 [P] [US2] Create fixture .github/ci-tester/fixtures/race-fail/ with go.mod, main.go (concurrent map), main_test.go, ci.yml
-- [ ] T044 [P] [US2] Create fixture .github/ci-tester/fixtures/sec-fail/ with go.mod, main.go (AWS key pattern), ci.yml
-- [ ] T045 [P] [US2] Create fixture .github/ci-tester/fixtures/vuln-fail/ with go.mod (CVE dep), go.sum, main.go, ci.yml
-- [ ] T046 [P] [US2] Create fixture .github/ci-tester/fixtures/cov-fail/ with go.mod, main.go, main_test.go (50% coverage), ci.yml
-- [ ] T047 [US2] Define LINT-001 scenario (unused variable detection) in guardian/scenarios/quality.go
-- [ ] T048 [P] [US2] Define LINT-002 scenario (gofmt violation) in guardian/scenarios/quality.go
-- [ ] T049 [P] [US2] Define LINT-003 scenario (golangci-lint violation) in guardian/scenarios/quality.go
-- [ ] T050 [US2] Define TEST-001 scenario (failing unit test) in guardian/scenarios/quality.go
-- [ ] T051 [P] [US2] Define TEST-002 scenario (test panic) in guardian/scenarios/quality.go
-- [ ] T052 [US2] Define RACE-001 scenario (data race detection) in guardian/scenarios/quality.go
-- [ ] T053 [US2] Define SEC-001 scenario (hardcoded AWS key) in guardian/scenarios/security.go
-- [ ] T054 [P] [US2] Define SEC-002 scenario (private key detection) in guardian/scenarios/security.go
-- [ ] T055 [US2] Define VULN-001 scenario (vulnerable dependency) in guardian/scenarios/security.go
-- [ ] T056 [US2] Define COV-001 scenario (low coverage threshold) in guardian/scenarios/quality.go
+- [X] T032 [US2] Create guardian/runner/runner.go with Runner interface
+- [X] T033 [US2] Implement act availability check in guardian/runner/act.go (CheckAvailable method)
+- [X] T034 [US2] Implement act CLI wrapper in guardian/runner/act.go (Run method with subprocess invocation)
+- [X] T035 [US2] Implement RunOptions and RunResult types in guardian/runner/runner.go
+- [X] T036 [US2] Create guardian/runner/events.go for GitHub event payload injection helpers
+- [X] T037 [US2] Create guardian/scenarios/scenarios.go with Scenario struct and Category constants
+- [X] T038 [US2] Create guardian/scenarios/registry.go with scenario registry and lookup functions
+- [X] T039 [US2] Create guardian/runner/scenario.go with scenario execution logic and result validation
+- [X] T040 [US2] Implement log pattern matching for ExpectedResult validation in guardian/runner/scenario.go
+- [X] T041 [P] [US2] Create fixture .github/ci-tester/fixtures/lint-fail/ with go.mod, main.go (unused var), ci.yml
+- [X] T042 [P] [US2] Create fixture .github/ci-tester/fixtures/test-fail/ with go.mod, main.go, main_test.go (failing assert), ci.yml
+- [X] T043 [P] [US2] Create fixture .github/ci-tester/fixtures/race-fail/ with go.mod, main.go (concurrent map), main_test.go, ci.yml
+- [X] T044 [P] [US2] Create fixture .github/ci-tester/fixtures/sec-fail/ with go.mod, main.go (AWS key pattern), ci.yml
+- [X] T045 [P] [US2] Create fixture .github/ci-tester/fixtures/vuln-fail/ with go.mod (CVE dep), go.sum, main.go, ci.yml
+- [X] T046 [P] [US2] Create fixture .github/ci-tester/fixtures/cov-fail/ with go.mod, main.go, main_test.go (50% coverage), ci.yml
+- [X] T047 [US2] Define LINT-001 scenario (unused variable detection) in guardian/scenarios/quality.go
+- [X] T048 [P] [US2] Define LINT-002 scenario (gofmt violation) in guardian/scenarios/quality.go
+- [X] T049 [P] [US2] Define LINT-003 scenario (golangci-lint violation) in guardian/scenarios/quality.go
+- [X] T050 [US2] Define TEST-001 scenario (failing unit test) in guardian/scenarios/quality.go
+- [X] T051 [P] [US2] Define TEST-002 scenario (test panic) in guardian/scenarios/quality.go
+- [X] T052 [US2] Define RACE-001 scenario (data race detection) in guardian/scenarios/quality.go
+- [X] T053 [US2] Define SEC-001 scenario (hardcoded AWS key) in guardian/scenarios/security.go
+- [X] T054 [P] [US2] Define SEC-002 scenario (private key detection) in guardian/scenarios/security.go
+- [X] T055 [US2] Define VULN-001 scenario (vulnerable dependency) in guardian/scenarios/security.go
+- [X] T056 [US2] Define COV-001 scenario (low coverage threshold) in guardian/scenarios/quality.go
 
 **Checkpoint**: User Story 2 complete - Individual scenarios can be executed locally and reproduce CI failures
 
@@ -141,18 +141,18 @@ Based on plan.md structure:
 
 ### Implementation for User Story 3
 
-- [ ] T057 [US3] Implement parallel scenario execution in guardian/runner/scenario.go (respecting ParallelScenarios config)
-- [ ] T058 [US3] Implement RunTest method in guardian/guardian.go (static + fast scenarios)
-- [ ] T059 [US3] Implement RunVerify method in guardian/guardian.go (static + all scenarios)
-- [ ] T060 [US3] Implement JSONL reporter in guardian/reporter/jsonl.go with JSONL output format
-- [ ] T061 [US3] Implement SARIF reporter in guardian/reporter/sarif.go using go-sarif library
-- [ ] T062 [US3] Implement GitHub annotations reporter in guardian/reporter/annotations.go
-- [ ] T063 [US3] Implement GitHub Step Summary generation in guardian/reporter/summary.go (markdown table)
-- [ ] T064 [US3] Implement ReportSummary calculation in guardian/reporter/report.go
-- [ ] T065 [US3] Implement ci:test MAGE-X command in magefiles/ci.go calling Guardian.RunTest
-- [ ] T066 [US3] Implement ci:verify MAGE-X command in magefiles/ci.go calling Guardian.RunVerify
-- [ ] T067 [P] [US3] Create .github/workflows/ci-tester.yml workflow for Guardian CI integration
-- [ ] T068 [P] [US3] Add SARIF upload step to ci-tester.yml for GitHub Security tab integration
+- [X] T057 [US3] Implement parallel scenario execution in guardian/runner/scenario.go (respecting ParallelScenarios config)
+- [X] T058 [US3] Implement RunTest method in guardian/guardian.go (static + fast scenarios)
+- [X] T059 [US3] Implement RunVerify method in guardian/guardian.go (static + all scenarios)
+- [X] T060 [US3] Implement JSONL reporter in guardian/reporter/jsonl.go with JSONL output format
+- [X] T061 [US3] Implement SARIF reporter in guardian/reporter/sarif.go using go-sarif library
+- [X] T062 [US3] Implement GitHub annotations reporter in guardian/reporter/annotations.go
+- [X] T063 [US3] Implement GitHub Step Summary generation in guardian/reporter/summary.go (markdown table)
+- [X] T064 [US3] Implement ReportSummary calculation in guardian/reporter/report.go
+- [X] T065 [US3] Implement ci:test MAGE-X command in magefiles/ci.go calling Guardian.RunTest
+- [X] T066 [US3] Implement ci:verify MAGE-X command in magefiles/ci.go calling Guardian.RunVerify
+- [X] T067 [P] [US3] Create .github/workflows/ci-tester.yml workflow for Guardian CI integration
+- [X] T068 [P] [US3] Add SARIF upload step to ci-tester.yml for GitHub Security tab integration
 
 **Checkpoint**: User Story 3 complete - `magex ci:verify` runs all scenarios with full reporting
 
@@ -168,11 +168,11 @@ Based on plan.md structure:
 
 ### Implementation for User Story 4
 
-- [ ] T069 [US4] Implement RunScenario method in guardian/guardian.go with ScenarioOptions support
-- [ ] T070 [US4] Add verbose output mode to scenario execution in guardian/runner/scenario.go
-- [ ] T071 [US4] Add keep-container support for debugging in guardian/runner/act.go
-- [ ] T072 [US4] Add timeout override support in guardian/runner/scenario.go
-- [ ] T073 [US4] Implement ci:scenario MAGE-X command in magefiles/ci.go with name, verbose, keep, timeout params
+- [X] T069 [US4] Implement RunScenario method in guardian/guardian.go with ScenarioOptions support
+- [X] T070 [US4] Add verbose output mode to scenario execution in guardian/runner/scenario.go
+- [X] T071 [US4] Add keep-container support for debugging in guardian/runner/act.go
+- [X] T072 [US4] Add timeout override support in guardian/runner/scenario.go
+- [X] T073 [US4] Implement ci:scenario MAGE-X command in magefiles/ci.go with name, verbose, keep, timeout params
 
 **Checkpoint**: User Story 4 complete - Single scenarios can be debugged with verbose output and container preservation
 
@@ -189,11 +189,11 @@ Based on plan.md structure:
 ### Implementation for User Story 5
 
 - [ ] T074 [US5] Implement policy severity escalation (warnings to errors for specific rules) in guardian/policy/engine.go
-- [ ] T075 [US5] Add pull_request_target with write permissions detection in guardian/policy/rules.go (detailed check)
-- [ ] T076 [US5] Add secret logging pattern detection in guardian/policy/rules.go (comprehensive patterns)
-- [ ] T077 [US5] Implement minimal-permissions policy rule in guardian/policy/rules.go
-- [ ] T078 [US5] Implement exception audit logging in guardian/policy/exceptions.go
-- [ ] T079 [US5] Add expiration checking for exceptions in guardian/policy/exceptions.go
+- [X] T075 [US5] Add pull_request_target with write permissions detection in guardian/policy/rules.go (detailed check)
+- [X] T076 [US5] Add secret logging pattern detection in guardian/policy/rules.go (comprehensive patterns)
+- [X] T077 [US5] Implement minimal-permissions policy rule in guardian/policy/rules.go
+- [X] T078 [US5] Implement exception audit logging in guardian/policy/exceptions.go
+- [X] T079 [US5] Add expiration checking for exceptions in guardian/policy/exceptions.go
 
 **Checkpoint**: User Story 5 complete - Policies are enforced with configurable severity and auditable exceptions
 
@@ -209,10 +209,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 6
 
-- [ ] T080 [US6] Define SLSA-001 scenario (provenance attestation present) in guardian/scenarios/supply_chain.go
-- [ ] T081 [P] [US6] Define SLSA-002 scenario (build isolation settings) in guardian/scenarios/supply_chain.go
-- [ ] T082 [P] [US6] Define SLSA-003 scenario (dependencies pinned to digests) in guardian/scenarios/supply_chain.go
-- [ ] T083 [US6] Define SBOM-001 scenario (SPDX/CycloneDX format compliance) in guardian/scenarios/supply_chain.go
+- [X] T080 [US6] Define SLSA-001 scenario (provenance attestation present) in guardian/scenarios/supply_chain.go
+- [X] T081 [P] [US6] Define SLSA-002 scenario (build isolation settings) in guardian/scenarios/supply_chain.go
+- [X] T082 [P] [US6] Define SLSA-003 scenario (dependencies pinned to digests) in guardian/scenarios/supply_chain.go
+- [X] T083 [US6] Define SBOM-001 scenario (SPDX/CycloneDX format compliance) in guardian/scenarios/supply_chain.go
 - [ ] T084 [US6] Implement supply chain validation logic in guardian/validator/supply_chain.go
 
 **Checkpoint**: User Story 6 complete - Supply chain compliance can be validated
@@ -229,10 +229,10 @@ Based on plan.md structure:
 
 ### Implementation for User Story 7
 
-- [ ] T085 [US7] Implement ListScenarios method in guardian/guardian.go with ScenarioFilter support
-- [ ] T086 [US7] Add category filtering to ListScenarios in guardian/guardian.go
-- [ ] T087 [US7] Add tag filtering to ListScenarios in guardian/guardian.go
-- [ ] T088 [US7] Implement ci:list MAGE-X command in magefiles/ci.go with filter parameter
+- [X] T085 [US7] Implement ListScenarios method in guardian/guardian.go with ScenarioFilter support
+- [X] T086 [US7] Add category filtering to ListScenarios in guardian/guardian.go
+- [X] T087 [US7] Add tag filtering to ListScenarios in guardian/guardian.go
+- [X] T088 [US7] Implement ci:list MAGE-X command in magefiles/ci.go with filter parameter
 - [ ] T089 [US7] Implement formatted scenario list output in guardian/reporter/terminal.go
 
 **Checkpoint**: User Story 7 complete - `magex ci:list` displays all scenarios with filtering
@@ -247,50 +247,50 @@ Based on plan.md structure:
 
 ### Fork Safety Scenarios
 
-- [ ] T090 [P] Define FORK-001 scenario (fork detection mechanism validation) in guardian/scenarios/fork.go
-- [ ] T091 [P] Define FORK-002 scenario (secret protection on fork PRs) in guardian/scenarios/fork.go
-- [ ] T092 [P] Define FORK-003 scenario (job skipping for fork PRs) in guardian/scenarios/fork.go
+- [X] T090 [P] Define FORK-001 scenario (fork detection mechanism validation) in guardian/scenarios/fork.go
+- [X] T091 [P] Define FORK-002 scenario (secret protection on fork PRs) in guardian/scenarios/fork.go
+- [X] T092 [P] Define FORK-003 scenario (job skipping for fork PRs) in guardian/scenarios/fork.go
 
 ### Configuration Scenarios
 
-- [ ] T093 [P] Define MATRIX-001 scenario (matrix expansion validation) in guardian/scenarios/config.go
-- [ ] T094 [P] Define ENV-001 scenario (.env.base schema validation: types, required fields, naming conventions per FR-013) in guardian/scenarios/config.go
-- [ ] T095 [P] Define CACHE-001 scenario (cache hit mode) in guardian/scenarios/config.go
-- [ ] T096 [P] Define CACHE-002 scenario (cache miss mode) in guardian/scenarios/config.go
+- [X] T093 [P] Define MATRIX-001 scenario (matrix expansion validation) in guardian/scenarios/config.go
+- [X] T094 [P] Define ENV-001 scenario (.env.base schema validation: types, required fields, naming conventions per FR-013) in guardian/scenarios/config.go
+- [X] T095 [P] Define CACHE-001 scenario (cache hit mode) in guardian/scenarios/config.go
+- [X] T096 [P] Define CACHE-002 scenario (cache miss mode) in guardian/scenarios/config.go
 
 ### Additional Security Scenarios
 
-- [ ] T097 [P] Define GITLEAKS-001 scenario (Gitleaks integration) in guardian/scenarios/security.go
-- [ ] T098 [P] Define GITLEAKS-002 scenario (custom patterns) in guardian/scenarios/security.go
+- [X] T097 [P] Define GITLEAKS-001 scenario (Gitleaks integration) in guardian/scenarios/security.go
+- [X] T098 [P] Define GITLEAKS-002 scenario (custom patterns) in guardian/scenarios/security.go
 
 ### Additional Quality Scenarios
 
-- [ ] T099 [P] Define BENCH-001 scenario (benchmark execution) in guardian/scenarios/quality.go
-- [ ] T100 [P] Define FUZZ-001 scenario (fuzz testing) in guardian/scenarios/quality.go
+- [X] T099 [P] Define BENCH-001 scenario (benchmark execution) in guardian/scenarios/quality.go
+- [X] T100 [P] Define FUZZ-001 scenario (fuzz testing) in guardian/scenarios/quality.go
 
 ### Pass Scenarios (Success Cases)
 
-- [ ] T101 [P] Create fixture .github/ci-tester/fixtures/pass-basic/ with passing code
-- [ ] T102 [P] Define PASS-001 scenario (clean code passes all checks) in guardian/scenarios/quality.go
-- [ ] T103 [P] Define PASS-002 scenario (full CI pipeline passes) in guardian/scenarios/quality.go
+- [X] T101 [P] Create fixture .github/ci-tester/fixtures/pass-basic/ with passing code
+- [X] T102 [P] Define PASS-001 scenario (clean code passes all checks) in guardian/scenarios/quality.go
+- [X] T103 [P] Define PASS-002 scenario (full CI pipeline passes) in guardian/scenarios/quality.go
 
 ### Additional Quality Scenarios (reaching 35+ total)
 
-- [ ] T113 [P] Define LINT-004 scenario (staticcheck violations) in guardian/scenarios/quality.go
-- [ ] T114 [P] Define TEST-003 scenario (test timeout exceeded) in guardian/scenarios/quality.go
-- [ ] T115 [P] Define COV-002 scenario (coverage threshold met - success case) in guardian/scenarios/quality.go
+- [X] T113 [P] Define LINT-004 scenario (staticcheck violations) in guardian/scenarios/quality.go
+- [X] T114 [P] Define TEST-003 scenario (test timeout exceeded) in guardian/scenarios/quality.go
+- [X] T115 [P] Define COV-002 scenario (coverage threshold met - success case) in guardian/scenarios/quality.go
 
 ### Additional Security Scenarios (reaching 35+ total)
 
-- [ ] T116 [P] Define SEC-003 scenario (govulncheck findings) in guardian/scenarios/security.go
-- [ ] T117 [P] Define VULN-002 scenario (nancy CVE detection) in guardian/scenarios/security.go
+- [X] T116 [P] Define SEC-003 scenario (govulncheck findings) in guardian/scenarios/security.go
+- [X] T117 [P] Define VULN-002 scenario (nancy CVE detection) in guardian/scenarios/security.go
 
 ### Workflow Validation Scenarios
 
-- [ ] T118 [P] Define WORKFLOW-001 scenario (invalid workflow YAML syntax) in guardian/scenarios/config.go
-- [ ] T119 [P] Define WORKFLOW-002 scenario (deprecated runner labels detection) in guardian/scenarios/config.go
-- [ ] T120 [P] Define ACTION-001 scenario (unpinned action static detection) in guardian/scenarios/config.go
-- [ ] T122 [P] Define ACTION-002 scenario (action.yml schema validation errors) in guardian/scenarios/config.go
+- [X] T118 [P] Define WORKFLOW-001 scenario (invalid workflow YAML syntax) in guardian/scenarios/config.go
+- [X] T119 [P] Define WORKFLOW-002 scenario (deprecated runner labels detection) in guardian/scenarios/config.go
+- [X] T120 [P] Define ACTION-001 scenario (unpinned action static detection) in guardian/scenarios/config.go
+- [X] T122 [P] Define ACTION-002 scenario (action.yml schema validation errors) in guardian/scenarios/config.go
 
 **Checkpoint**: All 35+ scenarios defined and registered (37 total: 10 Phase 4 + 4 Phase 8 + 23 Phase 10)
 
@@ -302,10 +302,10 @@ Based on plan.md structure:
 
 **Purpose**: Improvements affecting multiple components
 
-- [ ] T104 Implement graceful degradation when Docker is unavailable in guardian/guardian.go
+- [X] T104 Implement graceful degradation when Docker is unavailable in guardian/guardian.go
 - [ ] T105 Add disk space check before scenario execution in guardian/runner/act.go
 - [ ] T106 Implement retry with exponential backoff for image pulls in guardian/runner/act.go
-- [ ] T107 [P] Add CI environment detection (GITHUB_ACTIONS) in guardian/reporter/reporter.go
+- [X] T107 [P] Add CI environment detection (GITHUB_ACTIONS) in guardian/reporter/reporter.go
 - [ ] T108 [P] Create testdata/guardian/reports/ with expected golden files for reporter tests
 - [ ] T109 Create guardian/README.md documenting package overview, installation, usage, API reference
 - [ ] T110 Update deps:install MAGE-X target to install act and actionlint with pinned versions
