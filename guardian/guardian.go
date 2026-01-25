@@ -48,12 +48,13 @@ var (
 
 // Guardian is the main entry point for CI validation.
 type Guardian struct {
-	config     *Config
-	validators *validator.Registry
-	runner     runner.Runner
-	policy     *policy.Engine
-	reporters  *reporter.Registry
-	scenarios  *scenarios.Registry
+	config      *Config
+	validators  *validator.Registry
+	runner      runner.Runner
+	runnerError string // Stores the reason if runner initialization failed
+	policy      *policy.Engine
+	reporters   *reporter.Registry
+	scenarios   *scenarios.Registry
 }
 
 // ScenarioOptions configures single scenario execution.
@@ -104,6 +105,7 @@ func New(ctx context.Context, cfg *Config) (*Guardian, error) {
 	if err != nil {
 		// Runner initialization failure is non-fatal; static validation still works
 		g.runner = nil
+		g.runnerError = err.Error()
 	} else {
 		g.runner = r
 	}
@@ -193,20 +195,33 @@ func (g *Guardian) RunTest(ctx context.Context) (*reporter.Report, error) {
 
 	report.StaticResults = staticResults
 
-	// Run fast scenarios if runner is available
-	if g.runner != nil {
-		if err := g.runner.CheckAvailable(ctx); err == nil {
-			fastScenarios := g.scenarios.ByTags([]string{"fast"})
-
-			scenarioResults, err := g.executeScenarios(ctx, fastScenarios)
-			if err != nil {
-				return nil, fmt.Errorf("executing scenarios: %w", err)
-			}
-
-			report.ScenarioResults = scenarioResults
-		}
+	// Track runner status (for test mode, we only look at fast scenarios)
+	fastScenarios := g.scenarios.ByTags([]string{"fast"})
+	runnerStatus := &reporter.RunnerStatus{
+		RegisteredCount: len(fastScenarios),
+		ExecutedCount:   0,
 	}
 
+	// Run fast scenarios if runner is available
+	if g.runner == nil {
+		runnerStatus.Available = false
+		runnerStatus.UnavailableMsg = g.runnerError
+	} else if err := g.runner.CheckAvailable(ctx); err != nil {
+		runnerStatus.Available = false
+		runnerStatus.UnavailableMsg = err.Error()
+	} else {
+		runnerStatus.Available = true
+
+		scenarioResults, err := g.executeScenarios(ctx, fastScenarios)
+		if err != nil {
+			return nil, fmt.Errorf("executing scenarios: %w", err)
+		}
+
+		report.ScenarioResults = scenarioResults
+		runnerStatus.ExecutedCount = len(scenarioResults)
+	}
+
+	report.RunnerStatus = runnerStatus
 	report.EndTime = time.Now()
 	report.Duration = report.EndTime.Sub(report.StartTime)
 	report.Summary = g.calculateSummary(report)
@@ -234,20 +249,33 @@ func (g *Guardian) RunVerify(ctx context.Context) (*reporter.Report, error) {
 
 	report.StaticResults = staticResults
 
-	// Run all scenarios if runner is available
-	if g.runner != nil {
-		if err := g.runner.CheckAvailable(ctx); err == nil {
-			allScenarios := g.scenarios.All()
-
-			scenarioResults, err := g.executeScenarios(ctx, allScenarios)
-			if err != nil {
-				return nil, fmt.Errorf("executing scenarios: %w", err)
-			}
-
-			report.ScenarioResults = scenarioResults
-		}
+	// Track runner status
+	allScenarios := g.scenarios.All()
+	runnerStatus := &reporter.RunnerStatus{
+		RegisteredCount: len(allScenarios),
+		ExecutedCount:   0,
 	}
 
+	// Run all scenarios if runner is available
+	if g.runner == nil {
+		runnerStatus.Available = false
+		runnerStatus.UnavailableMsg = g.runnerError
+	} else if err := g.runner.CheckAvailable(ctx); err != nil {
+		runnerStatus.Available = false
+		runnerStatus.UnavailableMsg = err.Error()
+	} else {
+		runnerStatus.Available = true
+
+		scenarioResults, err := g.executeScenarios(ctx, allScenarios)
+		if err != nil {
+			return nil, fmt.Errorf("executing scenarios: %w", err)
+		}
+
+		report.ScenarioResults = scenarioResults
+		runnerStatus.ExecutedCount = len(scenarioResults)
+	}
+
+	report.RunnerStatus = runnerStatus
 	report.EndTime = time.Now()
 	report.Duration = report.EndTime.Sub(report.StartTime)
 	report.Summary = g.calculateSummary(report)
