@@ -176,19 +176,9 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 
 	// Check for pull_request_target with write permissions
 	if w.On != nil && w.On.PullRequestTarget != nil {
-		if w.HasWritePermissions() {
-			findings = append(findings, validator.Finding{
-				RuleID:     "policy/no-dangerous-workflows",
-				Severity:   validator.SeverityError,
-				Message:    "pull_request_target with write permissions is dangerous",
-				File:       w.Path,
-				Line:       1,
-				Source:     validator.SourcePolicy,
-				Suggestion: "Use pull_request event instead, or ensure no untrusted code is checked out",
-			})
-		}
-
-		// Check for checkout of PR head
+		// First, check for the actually dangerous pattern: checking out PR head
+		// This is the real security issue - executing untrusted code
+		hasDangerousCheckout := false
 		for _, job := range w.Jobs {
 			for _, step := range job.Steps {
 				if strings.Contains(step.Uses, "actions/checkout") {
@@ -196,6 +186,7 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 					if ref, ok := step.With["ref"].(string); ok {
 						if strings.Contains(ref, "pull_request") ||
 							strings.Contains(ref, "github.event.pull_request") {
+							hasDangerousCheckout = true
 							findings = append(findings, validator.Finding{
 								RuleID:     "policy/no-dangerous-workflows",
 								Severity:   validator.SeverityError,
@@ -209,6 +200,21 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 					}
 				}
 			}
+		}
+
+		// Only warn about pull_request_target + write permissions if there's no
+		// explicit dangerous checkout. The two-workflow pattern (separate workflows
+		// for same-repo and fork PRs) is legitimate when no PR code is executed.
+		if w.HasWritePermissions() && !hasDangerousCheckout {
+			findings = append(findings, validator.Finding{
+				RuleID:     "policy/no-dangerous-workflows",
+				Severity:   validator.SeverityWarning,
+				Message:    "pull_request_target with write permissions requires careful review",
+				File:       w.Path,
+				Line:       1,
+				Source:     validator.SourcePolicy,
+				Suggestion: "Ensure no untrusted code from the PR is checked out or executed",
+			})
 		}
 	}
 

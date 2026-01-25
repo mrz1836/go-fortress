@@ -33,13 +33,17 @@ func (v *ActionlintValidator) Validate(_ context.Context, workflowPath string) (
 		return nil, err
 	}
 
-	// Detect project root for context
-	project, err := actionlint.NewProject(filepath.Dir(workflowPath))
+	// Detect project root for context.
+	// Workflow files are in .github/workflows/, so project root is 2 dirs up.
+	workflowDir := filepath.Dir(workflowPath) // .github/workflows
+	githubDir := filepath.Dir(workflowDir)    // .github
+	projectRoot := filepath.Dir(githubDir)    // project root
+
+	project, err := actionlint.NewProject(projectRoot)
 	if err != nil {
 		// Non-fatal: continue without project context
 		project = nil
 	}
-	_ = project // may be nil
 
 	errs, err := linter.LintFile(workflowPath, project)
 	if err != nil {
