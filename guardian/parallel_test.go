@@ -2,6 +2,7 @@ package guardian
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -151,18 +152,13 @@ func TestExecuteScenarios_SequentialFallback(t *testing.T) {
 
 	scenarioList := createTestScenarios("TEST-001", "TEST-002", "TEST-003")
 
-	start := time.Now()
 	results, err := g.executeScenarios(context.Background(), scenarioList)
-	elapsed := time.Since(start)
 
 	require.NoError(t, err)
 	assert.Len(t, results, 3)
 
-	// Should take at least 30ms (3 scenarios * 10ms each) if running sequentially
-	assert.GreaterOrEqual(t, elapsed.Milliseconds(), int64(30),
-		"sequential execution should take at least 30ms")
-
-	// Max concurrent should be 1 for sequential
+	// Verify sequential behavior through concurrency tracking, not timing
+	// Timing assertions are flaky on CI systems under load
 	assert.Equal(t, int32(1), atomic.LoadInt32(&mock.maxConcurrent),
 		"sequential execution should have max concurrency of 1")
 }
@@ -180,19 +176,14 @@ func TestExecuteScenarios_ParallelExecution(t *testing.T) {
 		"TEST-005", "TEST-006", "TEST-007", "TEST-008",
 	)
 
-	start := time.Now()
 	results, err := g.executeScenarios(context.Background(), scenarioList)
-	elapsed := time.Since(start)
 
 	require.NoError(t, err)
 	assert.Len(t, results, 8)
 
-	// With 4 workers and 50ms per scenario, 8 scenarios should take ~100ms (2 batches)
-	// Sequential would take ~400ms. Allow some margin.
-	assert.Less(t, elapsed.Milliseconds(), int64(300),
-		"parallel execution should be faster than sequential")
-
-	// Max concurrent should be at least 2 (ideally 4)
+	// Verify parallel behavior through concurrency tracking, not timing
+	// Timing assertions are flaky on CI systems under load
+	// Max concurrent should be at least 2 (ideally 4) to prove parallelism
 	assert.GreaterOrEqual(t, atomic.LoadInt32(&mock.maxConcurrent), int32(2),
 		"parallel execution should have concurrency > 1")
 }
@@ -332,23 +323,23 @@ func TestExecuteScenariosParallel_LargeWorkload(t *testing.T) {
 	g, mock := createTestGuardian(t, 8)
 	mock.runDelay = 5 * time.Millisecond
 
-	// Create 50 scenarios
+	// Create 50 scenarios with valid IDs using fmt.Sprintf
 	ids := make([]string, 50)
 	for i := 0; i < 50; i++ {
-		ids[i] = "TEST-" + string(rune('A'+i%26)) + string(rune('0'+i/26))
+		ids[i] = fmt.Sprintf("TEST-%03d", i)
 	}
 	scenarioList := createTestScenarios(ids...)
 
-	start := time.Now()
 	results, err := g.executeScenarios(context.Background(), scenarioList)
-	elapsed := time.Since(start)
 
 	require.NoError(t, err)
 	assert.Len(t, results, 50)
 
-	// Sequential would take ~250ms (50 * 5ms), parallel should be much faster
-	assert.Less(t, elapsed.Milliseconds(), int64(200),
-		"parallel execution of 50 scenarios should complete in under 200ms")
+	// Verify parallel behavior through concurrency tracking, not timing
+	// Timing assertions are flaky on CI systems under load
+	// With 8 workers, we should see high concurrency
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&mock.maxConcurrent), int32(4),
+		"large workload should utilize multiple workers")
 
 	// Verify all results have correct IDs in order
 	for i, r := range results {
@@ -470,9 +461,7 @@ func TestExecuteScenarios_FixtureSerialization(t *testing.T) {
 		{ID: "B-004", Job: "B-004", FixturePath: "fixture-B", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
 	}
 
-	start := time.Now()
 	results, err := g.executeScenarios(context.Background(), scenarioList)
-	elapsed := time.Since(start)
 
 	require.NoError(t, err)
 	assert.Len(t, results, 8)
@@ -484,14 +473,9 @@ func TestExecuteScenarios_FixtureSerialization(t *testing.T) {
 	assert.Equal(t, int32(1), tracker.maxFixtureConcurrency["fixture-B"],
 		"fixture-B should have max concurrency of 1 (serialized)")
 
-	// Verify parallelism still works across fixtures
-	// 8 scenarios * 30ms each = 240ms sequential
-	// With 2 fixtures in parallel, each running 4 scenarios: 4 * 30ms = 120ms
-	// Allow margin for scheduling overhead
-	assert.Less(t, elapsed.Milliseconds(), int64(200),
-		"different fixtures should still run in parallel")
-
-	// Verify overall concurrency is > 1 (parallel execution is working)
+	// Verify parallelism through concurrency tracking, not timing
+	// Timing assertions are flaky on CI systems under load
+	// Overall concurrency > 1 proves parallel execution across fixtures
 	assert.GreaterOrEqual(t, atomic.LoadInt32(&tracker.maxConcurrent), int32(2),
 		"should have parallel execution across different fixtures")
 }
@@ -522,19 +506,14 @@ func TestExecuteScenarios_DistinctFixturesFullParallel(t *testing.T) {
 		{ID: "TEST-004", Job: "TEST-004", FixturePath: "fixture-4", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
 	}
 
-	start := time.Now()
 	results, err := g.executeScenarios(context.Background(), scenarioList)
-	elapsed := time.Since(start)
 
 	require.NoError(t, err)
 	assert.Len(t, results, 4)
 
-	// With 4 workers and 4 unique fixtures, all should run in parallel
-	// Sequential would be ~120ms, parallel should be ~30ms
-	assert.Less(t, elapsed.Milliseconds(), int64(80),
-		"distinct fixtures should run fully parallel")
-
-	// Max concurrency should be 4
+	// Verify full parallelism through concurrency tracking, not timing
+	// Timing assertions are flaky on CI systems under load
+	// Max concurrency should be 4 with 4 unique fixtures and 4 workers
 	assert.Equal(t, int32(4), atomic.LoadInt32(&tracker.maxConcurrent),
 		"all 4 scenarios with unique fixtures should run concurrently")
 }
