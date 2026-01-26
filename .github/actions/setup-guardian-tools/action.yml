@@ -201,7 +201,10 @@ runs:
 
         # Verify mage
         if command -v mage >/dev/null 2>&1; then
-          MAGE_VERSION=$(mage -version 2>&1 | head -1 || echo "unknown")
+          MAGE_VERSION=$(mage -version 2>&1 | head -1)
+          if [ -z "$MAGE_VERSION" ]; then
+            MAGE_VERSION="installed"
+          fi
           echo "✅ mage: $MAGE_VERSION"
           echo "mage-version=$MAGE_VERSION" >> $GITHUB_OUTPUT
         else
