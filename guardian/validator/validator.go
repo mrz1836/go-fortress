@@ -56,13 +56,23 @@ func (r *Registry) All() []Validator {
 }
 
 // ValidateAll runs all validators against a workflow file.
+// Validator errors are reported as findings with SeverityError so users
+// are aware that validation may be incomplete.
 func (r *Registry) ValidateAll(ctx context.Context, workflowPath string) ([]Finding, error) {
 	var allFindings []Finding
 
 	for _, v := range r.All() {
 		findings, err := v.Validate(ctx, workflowPath)
 		if err != nil {
-			// Log error but continue with other validators
+			// Report validator failure as a finding so users know validation was incomplete
+			allFindings = append(allFindings, Finding{
+				RuleID:   "validator/" + v.Name() + "-error",
+				Severity: SeverityError,
+				Message:  "validator failed: " + err.Error(),
+				File:     workflowPath,
+				Line:     0,
+				Source:   SourceValidator,
+			})
 			continue
 		}
 		allFindings = append(allFindings, findings...)

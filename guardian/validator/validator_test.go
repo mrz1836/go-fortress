@@ -15,6 +15,13 @@ import (
 
 var errValidationFailed = errors.New("validation failed")
 
+// Test errors for error reporting tests.
+var (
+	errOutOfMemory       = errors.New("validator crashed: out of memory")
+	errConnectionTimeout = errors.New("connection timeout")
+	errParseError        = errors.New("parse error")
+)
+
 // mockValidator is a test validator implementation.
 type mockValidator struct {
 	name     string
@@ -200,7 +207,7 @@ func TestRegistry_ValidateAll(t *testing.T) {
 			expectedFindings: 6,
 		},
 		{
-			name: "validator error is skipped, others continue",
+			name: "validator error creates error finding, others continue",
 			validators: []*mockValidator{
 				{
 					name:     "validator-ok",
@@ -215,7 +222,7 @@ func TestRegistry_ValidateAll(t *testing.T) {
 					findings: []validator.Finding{{Message: "also ok"}},
 				},
 			},
-			expectedFindings: 2, // Error validator findings are skipped
+			expectedFindings: 3, // 2 from working validators + 1 error finding from failed validator
 		},
 	}
 
@@ -343,4 +350,91 @@ func TestFindWorkflowFiles_Subdirectories(t *testing.T) {
 	files, err := validator.FindWorkflowFiles(tmpDir)
 	require.NoError(t, err)
 	assert.Len(t, files, 2)
+}
+
+// TestRegistry_ValidateAll_ErrorReporting tests that validator errors are reported as findings.
+func TestRegistry_ValidateAll_ErrorReporting(t *testing.T) {
+	t.Parallel()
+
+	reg := validator.NewRegistry()
+
+	// Register a validator that returns an error
+	reg.Register(&mockValidator{
+		name: "failing-validator",
+		err:  errOutOfMemory,
+	})
+
+	// Register a working validator
+	reg.Register(&mockValidator{
+		name: "working-validator",
+		findings: []validator.Finding{
+			{Message: "normal finding", RuleID: "test/rule"},
+		},
+	})
+
+	ctx := context.Background()
+	findings, err := reg.ValidateAll(ctx, "test-workflow.yml")
+
+	// ValidateAll should not return an error
+	require.NoError(t, err)
+
+	// Should have 2 findings: 1 error finding + 1 normal finding
+	require.Len(t, findings, 2)
+
+	// Find the error finding
+	var errorFinding *validator.Finding
+	var normalFinding *validator.Finding
+	for i := range findings {
+		if findings[i].Source == validator.SourceValidator {
+			errorFinding = &findings[i]
+		} else {
+			normalFinding = &findings[i]
+		}
+	}
+
+	// Verify the error finding
+	require.NotNil(t, errorFinding, "should have an error finding from failed validator")
+	assert.Equal(t, "validator/failing-validator-error", errorFinding.RuleID)
+	assert.Equal(t, validator.SeverityError, errorFinding.Severity)
+	assert.Contains(t, errorFinding.Message, "validator failed")
+	assert.Contains(t, errorFinding.Message, errOutOfMemory.Error())
+	assert.Equal(t, "test-workflow.yml", errorFinding.File)
+	assert.Equal(t, validator.SourceValidator, errorFinding.Source)
+
+	// Verify the normal finding still comes through
+	require.NotNil(t, normalFinding, "should have the normal finding from working validator")
+	assert.Equal(t, "test/rule", normalFinding.RuleID)
+}
+
+// TestRegistry_ValidateAll_AllValidatorsFail tests when all validators fail.
+func TestRegistry_ValidateAll_AllValidatorsFail(t *testing.T) {
+	t.Parallel()
+
+	reg := validator.NewRegistry()
+
+	// Register multiple failing validators
+	reg.Register(&mockValidator{
+		name: "validator-1",
+		err:  errConnectionTimeout,
+	})
+	reg.Register(&mockValidator{
+		name: "validator-2",
+		err:  errParseError,
+	})
+
+	ctx := context.Background()
+	findings, err := reg.ValidateAll(ctx, "workflow.yml")
+
+	// Should not return an error
+	require.NoError(t, err)
+
+	// Should have 2 error findings
+	require.Len(t, findings, 2)
+
+	// All findings should be error severity
+	for _, f := range findings {
+		assert.Equal(t, validator.SeverityError, f.Severity)
+		assert.Equal(t, validator.SourceValidator, f.Source)
+		assert.Contains(t, f.Message, "validator failed")
+	}
 }

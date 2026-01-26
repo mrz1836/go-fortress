@@ -61,4 +61,5 @@ const (
 	SourceSchema      FindingSource = "schema"
 	SourceDeprecation FindingSource = "deprecation"
 	SourceEnv         FindingSource = "env"
+	SourceValidator   FindingSource = "validator"
 )
