@@ -389,11 +389,11 @@ jobs:
               echo ""
 
               # Count results (only scenario events, not metadata like run_start/run_end)
-              TOTAL=$(grep -c '"type":"scenario"' "$JSONL_FILE" 2>/dev/null || echo "0")
-              PASSED=$(grep -c '"status":"pass"' "$JSONL_FILE" 2>/dev/null || echo "0")
-              FAILED=$(grep -c '"status":"fail"' "$JSONL_FILE" 2>/dev/null || echo "0")
-              ERRORS=$(grep -c '"status":"error"' "$JSONL_FILE" 2>/dev/null || echo "0")
-              SKIPPED=$(grep -c '"status":"skip"' "$JSONL_FILE" 2>/dev/null || echo "0")
+              TOTAL=$(grep -c '"type":"scenario"' "$JSONL_FILE" 2>/dev/null) || TOTAL=0
+              PASSED=$(grep -c '"status":"pass"' "$JSONL_FILE" 2>/dev/null) || PASSED=0
+              FAILED=$(grep -c '"status":"fail"' "$JSONL_FILE" 2>/dev/null) || FAILED=0
+              ERRORS=$(grep -c '"status":"error"' "$JSONL_FILE" 2>/dev/null) || ERRORS=0
+              SKIPPED=$(grep -c '"status":"skip"' "$JSONL_FILE" 2>/dev/null) || SKIPPED=0
 
               echo "### Summary: ${PASSED}/${TOTAL} scenarios passed"
               echo ""
