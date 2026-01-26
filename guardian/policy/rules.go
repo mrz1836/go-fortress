@@ -183,6 +183,30 @@ func checkExplicitPermissions(w *Workflow) []validator.Finding {
 	return findings
 }
 
+// dangerousRefPatterns matches refs that could checkout untrusted PR code.
+//
+//nolint:gochecknoglobals // compiled regex patterns for reuse
+var dangerousRefPatterns = []*regexp.Regexp{
+	// Direct PR head references
+	regexp.MustCompile(`pull_request`),
+	regexp.MustCompile(`github\.event\.pull_request`),
+	// PR head SHA references (various formats)
+	regexp.MustCompile(`\.head\.sha`),
+	regexp.MustCompile(`\.head\.ref`),
+	// Merge ref can also be dangerous
+	regexp.MustCompile(`refs/pull/.*/(head|merge)`),
+}
+
+// isDangerousRef checks if a checkout ref could reference untrusted PR code.
+func isDangerousRef(ref string) bool {
+	for _, pattern := range dangerousRefPatterns {
+		if pattern.MatchString(ref) {
+			return true
+		}
+	}
+	return false
+}
+
 func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 	var findings []validator.Finding
 
@@ -194,10 +218,10 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 		for _, job := range w.Jobs {
 			for _, step := range job.Steps {
 				if strings.Contains(step.Uses, "actions/checkout") {
-					// Check if it's checking out PR head
+					// Check if ref is specified
 					if ref, ok := step.With["ref"].(string); ok {
-						if strings.Contains(ref, "pull_request") ||
-							strings.Contains(ref, "github.event.pull_request") {
+						// Check against comprehensive dangerous patterns
+						if isDangerousRef(ref) {
 							hasDangerousCheckout = true
 							findings = append(findings, validator.Finding{
 								RuleID:     "policy/no-dangerous-workflows",
@@ -210,6 +234,9 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 							})
 						}
 					}
+					// Checkout without explicit ref in pull_request_target
+					// defaults to the base branch (safe), but we still flag if
+					// the workflow has write permissions as a warning below
 				}
 			}
 		}
@@ -234,14 +261,33 @@ func checkNoDangerousWorkflows(w *Workflow) []validator.Finding {
 }
 
 // secretPatterns matches common patterns for logging secrets.
+// Patterns are designed to minimize false positives while catching common mistakes.
 //
 //nolint:gochecknoglobals // compiled regex patterns for reuse
 var secretPatterns = []*regexp.Regexp{
+	// Echo/print commands with secrets interpolation
 	regexp.MustCompile(`echo.*\$\{\{.*secrets\.`),
 	regexp.MustCompile(`echo.*\$secrets\.`),
 	regexp.MustCompile(`printf.*\$\{\{.*secrets\.`),
-	regexp.MustCompile(`cat.*secrets\.`),
+	regexp.MustCompile(`print\s.*\$\{\{.*secrets\.`),
+
+	// Logging commands with secrets (common in various languages)
+	regexp.MustCompile(`console\.log.*\$\{\{.*secrets\.`),
+	regexp.MustCompile(`log\.\w+.*\$\{\{.*secrets\.`),
+
+	// Cat with secrets context variable (not file paths like .secrets/config)
+	// Requires ${{ secrets. }} interpolation syntax
+	regexp.MustCompile(`cat.*\$\{\{.*secrets\.`),
+
+	// Debug comments exposing secrets in environment
 	regexp.MustCompile(`env:.*\$\{\{.*secrets\..*\}\}.*#.*debug`),
+
+	// Base64 encoding of secrets (common exfiltration pattern)
+	regexp.MustCompile(`base64.*\$\{\{.*secrets\.`),
+
+	// Environment dump commands that might expose secrets
+	regexp.MustCompile(`printenv.*secrets`),
+	regexp.MustCompile(`env\s*\|.*secrets`),
 }
 
 func checkNoSecretLogging(w *Workflow) []validator.Finding {

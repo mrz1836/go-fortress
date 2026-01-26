@@ -3,12 +3,14 @@ package policy
 
 import (
 	"context"
+	"sync"
 
 	"github.com/mrz1836/go-fortress/guardian/validator"
 )
 
 // Engine evaluates policies against workflows.
 type Engine struct {
+	mu                sync.RWMutex
 	policies          []*Policy
 	exceptions        *ExceptionConfig
 	severityOverrides map[string]validator.Severity
@@ -39,17 +41,23 @@ func NewEngine() (*Engine, error) {
 // EscalateToError upgrades a policy's severity to error for enforcement.
 // This is used to convert warnings to errors for specific rules when strict mode is enabled.
 func (e *Engine) EscalateToError(policyID string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.severityOverrides[policyID] = validator.SeverityError
 	e.escalatedPolicies[policyID] = true
 }
 
 // SetSeverity overrides the severity for a specific policy.
 func (e *Engine) SetSeverity(policyID string, severity validator.Severity) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.severityOverrides[policyID] = severity
 }
 
 // IsEscalated returns true if the policy has been escalated to error.
 func (e *Engine) IsEscalated(policyID string) bool {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
 	return e.escalatedPolicies[policyID]
 }
 
@@ -131,7 +139,11 @@ func (e *Engine) RegisterPolicy(p *Policy) {
 // getEffectiveSeverity returns the effective severity for a finding,
 // applying any overrides configured via EscalateToError or SetSeverity.
 func (e *Engine) getEffectiveSeverity(finding *validator.Finding, policyID string) validator.Severity {
-	if override, ok := e.severityOverrides[policyID]; ok {
+	e.mu.RLock()
+	override, ok := e.severityOverrides[policyID]
+	e.mu.RUnlock()
+
+	if ok {
 		return override
 	}
 

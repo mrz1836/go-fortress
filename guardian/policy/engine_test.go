@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -391,4 +392,99 @@ func TestEngine_Policies(t *testing.T) {
 	assert.Contains(t, shaPinned.Description, "SHA")
 	assert.NotEmpty(t, shaPinned.HelpURL)
 	assert.Contains(t, shaPinned.Tags, "security")
+}
+
+// TestEngine_ConcurrentAccess tests that concurrent access to the engine is safe.
+// This test verifies the fix for the race condition in severity overrides.
+// Run with -race flag to detect data races: go test -race ./guardian/policy/...
+func TestEngine_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
+	engine, err := policy.NewEngine()
+	require.NoError(t, err)
+
+	// Create a workflow to evaluate
+	workflow := &policy.Workflow{
+		Path: "test.yml",
+		Jobs: map[string]*policy.Job{
+			"build": {
+				Steps: []*policy.Step{
+					{Uses: "actions/checkout@v4", Line: 10},
+				},
+			},
+		},
+	}
+
+	// Run concurrent operations
+	const goroutines = 50
+	var wg sync.WaitGroup
+
+	wg.Add(goroutines * 4)
+
+	// Concurrent severity escalations
+	for i := 0; i < goroutines; i++ {
+		go func(n int) {
+			defer wg.Done()
+			policyID := "test-policy-" + string(rune('A'+n%26))
+			engine.EscalateToError(policyID)
+		}(i)
+	}
+
+	// Concurrent severity overrides
+	for i := 0; i < goroutines; i++ {
+		go func(n int) {
+			defer wg.Done()
+			policyID := "test-policy-" + string(rune('A'+n%26))
+			severity := validator.SeverityWarning
+			if n%2 == 0 {
+				severity = validator.SeverityError
+			}
+			engine.SetSeverity(policyID, severity)
+		}(i)
+	}
+
+	// Concurrent escalation checks
+	for i := 0; i < goroutines; i++ {
+		go func(n int) {
+			defer wg.Done()
+			policyID := "test-policy-" + string(rune('A'+n%26))
+			_ = engine.IsEscalated(policyID)
+		}(i)
+	}
+
+	// Concurrent evaluations
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			ctx := context.Background()
+			_, _ = engine.Evaluate(ctx, workflow)
+		}()
+	}
+
+	wg.Wait()
+
+	// If we get here without a race detected or panic, the test passes
+}
+
+// TestEngine_SeverityOverridePersistence tests that severity overrides persist correctly.
+func TestEngine_SeverityOverridePersistence(t *testing.T) {
+	t.Parallel()
+
+	engine, err := policy.NewEngine()
+	require.NoError(t, err)
+
+	// Set multiple severity overrides
+	engine.SetSeverity("policy-a", validator.SeverityWarning)
+	engine.SetSeverity("policy-b", validator.SeverityError)
+	engine.SetSeverity("policy-c", validator.SeverityNote)
+
+	// Escalate some policies
+	engine.EscalateToError("policy-d")
+	engine.EscalateToError("policy-e")
+
+	// Verify escalations are tracked
+	assert.True(t, engine.IsEscalated("policy-d"))
+	assert.True(t, engine.IsEscalated("policy-e"))
+	assert.False(t, engine.IsEscalated("policy-a"))
+	assert.False(t, engine.IsEscalated("policy-nonexistent"))
 }

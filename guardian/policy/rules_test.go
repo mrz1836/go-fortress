@@ -247,6 +247,54 @@ func TestCheckNoDangerousWorkflows(t *testing.T) {
 			permissions:    &policy.Permissions{Contents: "read"},
 			expectFindings: 0,
 		},
+		{
+			name:        "pull_request_target checking out head.ref is dangerous",
+			triggers:    &policy.WorkflowTriggers{PullRequestTarget: &policy.PullRequestTrigger{}},
+			permissions: &policy.Permissions{Contents: "write"},
+			steps: []*policy.Step{
+				{
+					Uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+					With: map[string]interface{}{
+						"ref": "${{ github.event.pull_request.head.ref }}",
+					},
+					Line: 25,
+				},
+			},
+			expectFindings: 1,
+			expectSeverity: validator.SeverityError,
+		},
+		{
+			name:        "pull_request_target with refs/pull/*/head is dangerous",
+			triggers:    &policy.WorkflowTriggers{PullRequestTarget: &policy.PullRequestTrigger{}},
+			permissions: &policy.Permissions{Contents: "write"},
+			steps: []*policy.Step{
+				{
+					Uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+					With: map[string]interface{}{
+						"ref": "refs/pull/${{ github.event.number }}/head",
+					},
+					Line: 30,
+				},
+			},
+			expectFindings: 1,
+			expectSeverity: validator.SeverityError,
+		},
+		{
+			name:        "pull_request_target with refs/pull/*/merge is dangerous",
+			triggers:    &policy.WorkflowTriggers{PullRequestTarget: &policy.PullRequestTrigger{}},
+			permissions: &policy.Permissions{Contents: "write"},
+			steps: []*policy.Step{
+				{
+					Uses: "actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd",
+					With: map[string]interface{}{
+						"ref": "refs/pull/123/merge",
+					},
+					Line: 35,
+				},
+			},
+			expectFindings: 1,
+			expectSeverity: validator.SeverityError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -301,9 +349,19 @@ func TestCheckNoSecretLogging(t *testing.T) {
 			expectFindings: 1,
 		},
 		{
-			name:           "cat secrets is detected",
-			runScript:      "cat secrets.txt",
+			name:           "cat with secrets interpolation is detected",
+			runScript:      `cat ${{ secrets.CONFIG_FILE }}`,
 			expectFindings: 1,
+		},
+		{
+			name:           "cat secrets.txt (file path) is NOT flagged - no false positive",
+			runScript:      "cat secrets.txt",
+			expectFindings: 0,
+		},
+		{
+			name:           "cat .secrets/config (directory path) is NOT flagged - no false positive",
+			runScript:      "cat .secrets/config",
+			expectFindings: 0,
 		},
 		{
 			name:           "safe secret usage is allowed",
@@ -314,6 +372,21 @@ func TestCheckNoSecretLogging(t *testing.T) {
 			name:           "step without run is safe",
 			runScript:      "",
 			expectFindings: 0,
+		},
+		{
+			name:           "console.log with secret is detected",
+			runScript:      `node -e "console.log(${{ secrets.API_KEY }})"`,
+			expectFindings: 1,
+		},
+		{
+			name:           "base64 encoding secret is detected",
+			runScript:      `echo ${{ secrets.TOKEN }} | base64`,
+			expectFindings: 1,
+		},
+		{
+			name:           "print command with secret is detected",
+			runScript:      `print "Debug: ${{ secrets.PASSWORD }}"`,
+			expectFindings: 1,
 		},
 	}
 
