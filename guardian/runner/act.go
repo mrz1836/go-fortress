@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -18,6 +19,88 @@ import (
 
 // ErrInsufficientDiskSpace is returned when there is not enough disk space for container images.
 var ErrInsufficientDiskSpace = errors.New("insufficient disk space")
+
+// ErrDangerousEnvVar is returned when a dangerous environment variable is detected.
+var ErrDangerousEnvVar = errors.New("dangerous environment variable")
+
+// dangerousEnvVars contains environment variable names that could be used for injection attacks.
+// These variables affect dynamic linker, interpreter paths, or other security-sensitive settings.
+//
+//nolint:gochecknoglobals // security configuration is intentionally global
+var dangerousEnvVars = map[string]bool{
+	// Dynamic linker injection
+	"LD_PRELOAD":            true,
+	"LD_LIBRARY_PATH":       true,
+	"LD_AUDIT":              true,
+	"LD_DEBUG":              true,
+	"LD_PROFILE":            true,
+	"DYLD_INSERT_LIBRARIES": true, // macOS equivalent of LD_PRELOAD
+	"DYLD_LIBRARY_PATH":     true, // macOS library path
+
+	// Interpreter path injection
+	"PYTHONPATH":        true,
+	"PYTHONSTARTUP":     true,
+	"PYTHONHOME":        true,
+	"NODE_PATH":         true,
+	"NODE_OPTIONS":      true,
+	"RUBYLIB":           true,
+	"RUBYOPT":           true,
+	"PERL5LIB":          true,
+	"PERL5OPT":          true,
+	"CLASSPATH":         true,
+	"JAVA_TOOL_OPTIONS": true,
+
+	// Shell injection
+	"BASH_ENV":       true,
+	"ENV":            true, // Used by sh
+	"ZDOTDIR":        true,
+	"PROMPT_COMMAND": true,
+
+	// Git hooks (could execute arbitrary code)
+	"GIT_EXEC_PATH":   true,
+	"GIT_SSH_COMMAND": true,
+
+	// Other dangerous variables
+	"IFS": true, // Input Field Separator - can affect shell parsing
+}
+
+// validEnvVarNamePattern matches valid environment variable names.
+// Names must start with a letter or underscore and contain only alphanumeric chars and underscores.
+var validEnvVarNamePattern = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+
+// ValidateEnvVar checks if an environment variable name is safe to use.
+// Returns an error if the variable name is dangerous or invalid.
+func ValidateEnvVar(name string) error {
+	// Check for valid format
+	if !validEnvVarNamePattern.MatchString(name) {
+		return fmt.Errorf("%w: invalid variable name format: %s", ErrDangerousEnvVar, name)
+	}
+
+	// Check against dangerous variable list
+	if dangerousEnvVars[name] {
+		return fmt.Errorf("%w: %s is a security-sensitive variable", ErrDangerousEnvVar, name)
+	}
+
+	return nil
+}
+
+// ValidateEnvVars checks all environment variable names in a map.
+// Returns an error containing all invalid variable names if any are found.
+func ValidateEnvVars(env map[string]string) error {
+	var invalidVars []string
+
+	for name := range env {
+		if err := ValidateEnvVar(name); err != nil {
+			invalidVars = append(invalidVars, name)
+		}
+	}
+
+	if len(invalidVars) > 0 {
+		return fmt.Errorf("%w: rejected variables: %s", ErrDangerousEnvVar, strings.Join(invalidVars, ", "))
+	}
+
+	return nil
+}
 
 // ActRunner implements Runner using nektos/act.
 type ActRunner struct {
@@ -85,8 +168,13 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 		cmd.Dir = opts.WorkingDir
 	}
 
-	// Set environment variables
+	// Set environment variables with security validation
 	if len(opts.Env) > 0 {
+		// Validate all environment variable names before applying
+		if err := ValidateEnvVars(opts.Env); err != nil {
+			return nil, fmt.Errorf("environment validation failed: %w", err)
+		}
+
 		cmd.Env = cmd.Environ()
 
 		for k, v := range opts.Env {

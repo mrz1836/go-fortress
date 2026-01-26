@@ -792,3 +792,187 @@ func TestValidateResult(t *testing.T) {
 		})
 	}
 }
+
+// TestValidateEnvVar tests individual environment variable validation.
+func TestValidateEnvVar(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		varName   string
+		expectErr bool
+	}{
+		// Valid environment variable names
+		{
+			name:      "simple valid name",
+			varName:   "MY_VAR",
+			expectErr: false,
+		},
+		{
+			name:      "lowercase valid name",
+			varName:   "my_var",
+			expectErr: false,
+		},
+		{
+			name:      "underscore prefix",
+			varName:   "_PRIVATE_VAR",
+			expectErr: false,
+		},
+		{
+			name:      "with numbers",
+			varName:   "VAR123",
+			expectErr: false,
+		},
+		{
+			name:      "github token (safe)",
+			varName:   "GITHUB_TOKEN",
+			expectErr: false,
+		},
+
+		// Dangerous environment variables - linker injection
+		{
+			name:      "LD_PRELOAD is dangerous",
+			varName:   "LD_PRELOAD",
+			expectErr: true,
+		},
+		{
+			name:      "LD_LIBRARY_PATH is dangerous",
+			varName:   "LD_LIBRARY_PATH",
+			expectErr: true,
+		},
+		{
+			name:      "DYLD_INSERT_LIBRARIES is dangerous (macOS)",
+			varName:   "DYLD_INSERT_LIBRARIES",
+			expectErr: true,
+		},
+
+		// Dangerous environment variables - interpreter injection
+		{
+			name:      "PYTHONPATH is dangerous",
+			varName:   "PYTHONPATH",
+			expectErr: true,
+		},
+		{
+			name:      "NODE_OPTIONS is dangerous",
+			varName:   "NODE_OPTIONS",
+			expectErr: true,
+		},
+		{
+			name:      "RUBYOPT is dangerous",
+			varName:   "RUBYOPT",
+			expectErr: true,
+		},
+
+		// Dangerous environment variables - shell injection
+		{
+			name:      "BASH_ENV is dangerous",
+			varName:   "BASH_ENV",
+			expectErr: true,
+		},
+		{
+			name:      "PROMPT_COMMAND is dangerous",
+			varName:   "PROMPT_COMMAND",
+			expectErr: true,
+		},
+
+		// Invalid format
+		{
+			name:      "starts with number is invalid",
+			varName:   "123VAR",
+			expectErr: true,
+		},
+		{
+			name:      "contains hyphen is invalid",
+			varName:   "MY-VAR",
+			expectErr: true,
+		},
+		{
+			name:      "contains space is invalid",
+			varName:   "MY VAR",
+			expectErr: true,
+		},
+		{
+			name:      "empty name is invalid",
+			varName:   "",
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := runner.ValidateEnvVar(tt.varName)
+			if tt.expectErr {
+				require.Error(t, err)
+				assert.ErrorIs(t, err, runner.ErrDangerousEnvVar)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestValidateEnvVars tests validating a map of environment variables.
+func TestValidateEnvVars(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		env          map[string]string
+		expectErr    bool
+		expectInvars []string // expected invalid variables in error
+	}{
+		{
+			name: "all valid vars",
+			env: map[string]string{
+				"GITHUB_TOKEN": "secret",
+				"CI":           "true",
+				"MY_CUSTOM":    "value",
+			},
+			expectErr: false,
+		},
+		{
+			name:      "empty map is valid",
+			env:       map[string]string{},
+			expectErr: false,
+		},
+		{
+			name: "single dangerous var",
+			env: map[string]string{
+				"MY_VAR":     "ok",
+				"LD_PRELOAD": "/lib/evil.so",
+			},
+			expectErr:    true,
+			expectInvars: []string{"LD_PRELOAD"},
+		},
+		{
+			name: "multiple dangerous vars",
+			env: map[string]string{
+				"LD_PRELOAD": "/lib/evil.so",
+				"PYTHONPATH": "/tmp/evil",
+				"NORMAL_VAR": "ok",
+			},
+			expectErr:    true,
+			expectInvars: []string{"LD_PRELOAD", "PYTHONPATH"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := runner.ValidateEnvVars(tt.env)
+			if tt.expectErr {
+				require.Error(t, err)
+				require.ErrorIs(t, err, runner.ErrDangerousEnvVar)
+				for _, inv := range tt.expectInvars {
+					assert.Contains(t, err.Error(), inv,
+						"error should mention %q", inv)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
