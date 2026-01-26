@@ -78,7 +78,7 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 		}
 	}
 
-	args := r.buildArgs(opts)
+	args := r.BuildArgs(opts)
 
 	cmd := exec.CommandContext(ctx, r.path, args...) //nolint:gosec // r.path is validated act binary
 	if opts.WorkingDir != "" {
@@ -117,7 +117,7 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 
 	// Extract container ID if keep-container was used
 	if opts.KeepContainer {
-		result.ContainerID = extractContainerID(result.Output)
+		result.ContainerID = ExtractContainerID(result.Output)
 	}
 
 	return result, nil
@@ -169,8 +169,8 @@ func (r *ActRunner) EnsureImageAvailable(ctx context.Context, image string) erro
 	return r.PullImageWithRetry(ctx, image)
 }
 
-// buildArgs constructs the command line arguments for act.
-func (r *ActRunner) buildArgs(opts RunOptions) []string {
+// BuildArgs constructs the command line arguments for act.
+func (r *ActRunner) BuildArgs(opts RunOptions) []string {
 	args := []string{}
 
 	// Workflow file - prepend .github/workflows/ if not already present
@@ -235,8 +235,8 @@ func (r *ActRunner) checkDockerRunning(ctx context.Context) error {
 	return nil
 }
 
-// extractContainerID extracts container ID from act output.
-func extractContainerID(output string) string {
+// ExtractContainerID extracts container ID from act output.
+func ExtractContainerID(output string) string {
 	// Act outputs container information in various formats
 	// Look for common patterns
 	lines := strings.Split(output, "\n")
