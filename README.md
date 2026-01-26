@@ -224,6 +224,48 @@ Like a medieval fortress with multiple walls, each layer of our defense system c
 
 <br/>
 
+### 🛡️ Fortress Guardian - Local CI Validation
+
+Test your CI pipelines before pushing. Guardian provides a Go-native framework for validating GitHub Actions workflows locally.
+
+<table>
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th>Description</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>🔬 Static Validation</strong></td>
+      <td>Workflow syntax and policy checks without Docker (< 2s)</td>
+    </tr>
+    <tr>
+      <td><strong>🐳 Local Execution</strong></td>
+      <td>Run GitHub Actions locally via <code>nektos/act</code></td>
+    </tr>
+    <tr>
+      <td><strong>📋 35+ Scenarios</strong></td>
+      <td>Pre-built test cases for quality, security, fork safety, and supply chain</td>
+    </tr>
+    <tr>
+      <td><strong>🔒 Policy Engine</strong></td>
+      <td>Enforce SHA-pinned actions, explicit permissions, and security best practices</td>
+    </tr>
+  </tbody>
+</table>
+
+**Quick Commands:**
+```bash
+magex ci:static    # Static validation (no Docker required)
+magex ci:test      # Quick test with fast scenarios
+magex ci:verify    # Full 35+ scenario verification
+```
+
+See **[guardian/README.md](guardian/README.md)** for complete documentation.
+
+<br/>
+
 ### 🎯 Configuration Power
 
 With 225+ knobs to turn and switches to flip, you're the architect of your own CI/CD destiny. Fine-tune every aspect from test matrices to runner selection—because one size never fits all in the real world.

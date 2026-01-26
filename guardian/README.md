@@ -23,7 +23,7 @@ magex deps:install
 
 # Or manually:
 go install github.com/nektos/act@v0.2.84
-go install github.com/rhysd/actionlint/cmd/actionlint@v1.6.27
+go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
 ```
 
 ## Quick Start
@@ -92,11 +92,11 @@ guardian/
 import "github.com/mrz1836/go-fortress/guardian"
 
 // With default configuration
-g, err := guardian.New(guardian.DefaultConfig())
+g, err := guardian.New(ctx, guardian.DefaultConfig())
 
 // Or load from environment
 cfg := guardian.LoadFromEnv()
-g, err := guardian.New(cfg)
+g, err := guardian.New(ctx, cfg)
 ```
 
 ### Running Validation
@@ -133,21 +133,21 @@ scenarios, err := g.ListScenarios(ctx, guardian.ScenarioFilter{
 ### Environment Variables
 
 ```bash
-# Feature toggle
-ENABLE_CI_GUARDIAN=true
-
-# Tool versions
-GUARDIAN_ACT_VERSION=v0.2.84
-GUARDIAN_ACTIONLINT_VERSION=v1.6.27
-
 # Execution settings
 GUARDIAN_SCENARIO_TIMEOUT=30s
+GUARDIAN_STATIC_TIMEOUT=5s
 GUARDIAN_PARALLEL_SCENARIOS=4
 
 # Output
 GUARDIAN_OUTPUT_DIR=.mage-x
 GUARDIAN_SARIF_OUTPUT=guardian.sarif
 GUARDIAN_JSONL_OUTPUT=ci-results.jsonl
+
+# Debug options
+GUARDIAN_VERBOSE=false
+GUARDIAN_DRY_RUN=false
+GUARDIAN_KEEP_CONTAINERS=false
+GUARDIAN_POLICY_STRICT=false
 ```
 
 ### Policy Exceptions
@@ -229,7 +229,7 @@ When running in GitHub Actions, findings appear as PR annotations.
 
 ## Requirements
 
-- Go 1.24+
+- Go 1.24
 - Docker 20.10+ (for scenario execution)
 - 10 GB disk space (for container images)
 - 4 GB memory (for parallel execution)
