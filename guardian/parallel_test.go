@@ -100,13 +100,15 @@ func createTestGuardian(t *testing.T, parallelScenarios int) (*Guardian, *mockRu
 }
 
 // createTestScenarios creates n test scenarios with the given IDs.
+// Each scenario gets a unique FixturePath to allow parallel execution.
 func createTestScenarios(ids ...string) []*scenarios.Scenario {
 	result := make([]*scenarios.Scenario, len(ids))
 	for i, id := range ids {
 		result[i] = &scenarios.Scenario{
-			ID:       id,
-			Category: scenarios.CategoryQuality,
-			Job:      id, // Use ID as job name for mock lookup
+			ID:          id,
+			Category:    scenarios.CategoryQuality,
+			Job:         id,              // Use ID as job name for mock lookup
+			FixturePath: "fixture-" + id, // Unique fixture per scenario for parallel execution
 			Expected: scenarios.ExpectedResult{
 				Status: scenarios.StatusSuccess,
 			},
@@ -391,4 +393,148 @@ func TestExecuteScenarios_MixedResults(t *testing.T) {
 	assert.Equal(t, reporter.ResultPass, results[0].Status)
 	assert.Equal(t, reporter.ResultPass, results[1].Status)
 	assert.Equal(t, reporter.ResultPass, results[2].Status)
+}
+
+// fixtureTrackingRunner extends mockRunner to track concurrent fixture access.
+type fixtureTrackingRunner struct {
+	*mockRunner
+
+	mu                    sync.Mutex
+	fixtureAccess         map[string]int32 // Current concurrent access count per fixture
+	maxFixtureConcurrency map[string]int32 // Max concurrent access observed per fixture
+	accessOrder           []string         // Order of fixture access starts
+}
+
+func newFixtureTrackingRunner() *fixtureTrackingRunner {
+	return &fixtureTrackingRunner{
+		mockRunner:            newMockRunner(),
+		fixtureAccess:         make(map[string]int32),
+		maxFixtureConcurrency: make(map[string]int32),
+		accessOrder:           []string{},
+	}
+}
+
+func (f *fixtureTrackingRunner) Run(ctx context.Context, opts runner.RunOptions) (*runner.RunResult, error) {
+	fixture := opts.WorkingDir
+
+	// Track fixture access
+	f.mu.Lock()
+	f.fixtureAccess[fixture]++
+	current := f.fixtureAccess[fixture]
+	if current > f.maxFixtureConcurrency[fixture] {
+		f.maxFixtureConcurrency[fixture] = current
+	}
+	f.accessOrder = append(f.accessOrder, fixture)
+	f.mu.Unlock()
+
+	// Delegate to mock runner
+	result, err := f.mockRunner.Run(ctx, opts)
+
+	// Release fixture access
+	f.mu.Lock()
+	f.fixtureAccess[fixture]--
+	f.mu.Unlock()
+
+	return result, err
+}
+
+// TestExecuteScenarios_FixtureSerialization tests that scenarios sharing fixtures run sequentially.
+func TestExecuteScenarios_FixtureSerialization(t *testing.T) {
+	t.Parallel()
+
+	tracker := newFixtureTrackingRunner()
+	tracker.runDelay = 30 * time.Millisecond
+
+	cfg := DefaultConfig()
+	cfg.ParallelScenarios = 4
+	cfg.ScenarioTimeout = 5 * time.Second
+
+	g := &Guardian{
+		config:    cfg,
+		runner:    tracker,
+		scenarios: scenarios.NewRegistry(),
+		reporters: reporter.NewRegistry(),
+	}
+
+	// Create scenarios: 4 scenarios share "fixture-A", 4 scenarios share "fixture-B"
+	// With 4 workers, both fixtures should run in parallel, but scenarios within
+	// each fixture should be serialized
+	scenarioList := []*scenarios.Scenario{
+		{ID: "A-001", Job: "A-001", FixturePath: "fixture-A", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "A-002", Job: "A-002", FixturePath: "fixture-A", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "B-001", Job: "B-001", FixturePath: "fixture-B", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "B-002", Job: "B-002", FixturePath: "fixture-B", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "A-003", Job: "A-003", FixturePath: "fixture-A", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "A-004", Job: "A-004", FixturePath: "fixture-A", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "B-003", Job: "B-003", FixturePath: "fixture-B", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "B-004", Job: "B-004", FixturePath: "fixture-B", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+	}
+
+	start := time.Now()
+	results, err := g.executeScenarios(context.Background(), scenarioList)
+	elapsed := time.Since(start)
+
+	require.NoError(t, err)
+	assert.Len(t, results, 8)
+
+	// Critical assertion: each fixture should have max concurrency of 1
+	// This ensures scenarios sharing a fixture are serialized
+	assert.Equal(t, int32(1), tracker.maxFixtureConcurrency["fixture-A"],
+		"fixture-A should have max concurrency of 1 (serialized)")
+	assert.Equal(t, int32(1), tracker.maxFixtureConcurrency["fixture-B"],
+		"fixture-B should have max concurrency of 1 (serialized)")
+
+	// Verify parallelism still works across fixtures
+	// 8 scenarios * 30ms each = 240ms sequential
+	// With 2 fixtures in parallel, each running 4 scenarios: 4 * 30ms = 120ms
+	// Allow margin for scheduling overhead
+	assert.Less(t, elapsed.Milliseconds(), int64(200),
+		"different fixtures should still run in parallel")
+
+	// Verify overall concurrency is > 1 (parallel execution is working)
+	assert.GreaterOrEqual(t, atomic.LoadInt32(&tracker.maxConcurrent), int32(2),
+		"should have parallel execution across different fixtures")
+}
+
+// TestExecuteScenarios_DistinctFixturesFullParallel tests that scenarios with distinct fixtures run fully parallel.
+func TestExecuteScenarios_DistinctFixturesFullParallel(t *testing.T) {
+	t.Parallel()
+
+	tracker := newFixtureTrackingRunner()
+	tracker.runDelay = 30 * time.Millisecond
+
+	cfg := DefaultConfig()
+	cfg.ParallelScenarios = 4
+	cfg.ScenarioTimeout = 5 * time.Second
+
+	g := &Guardian{
+		config:    cfg,
+		runner:    tracker,
+		scenarios: scenarios.NewRegistry(),
+		reporters: reporter.NewRegistry(),
+	}
+
+	// Create 4 scenarios each with a unique fixture - should run fully parallel
+	scenarioList := []*scenarios.Scenario{
+		{ID: "TEST-001", Job: "TEST-001", FixturePath: "fixture-1", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "TEST-002", Job: "TEST-002", FixturePath: "fixture-2", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "TEST-003", Job: "TEST-003", FixturePath: "fixture-3", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+		{ID: "TEST-004", Job: "TEST-004", FixturePath: "fixture-4", Expected: scenarios.ExpectedResult{Status: scenarios.StatusSuccess}},
+	}
+
+	start := time.Now()
+	results, err := g.executeScenarios(context.Background(), scenarioList)
+	elapsed := time.Since(start)
+
+	require.NoError(t, err)
+	assert.Len(t, results, 4)
+
+	// With 4 workers and 4 unique fixtures, all should run in parallel
+	// Sequential would be ~120ms, parallel should be ~30ms
+	assert.Less(t, elapsed.Milliseconds(), int64(80),
+		"distinct fixtures should run fully parallel")
+
+	// Max concurrency should be 4
+	assert.Equal(t, int32(4), atomic.LoadInt32(&tracker.maxConcurrent),
+		"all 4 scenarios with unique fixtures should run concurrently")
 }

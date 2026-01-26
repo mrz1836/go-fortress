@@ -26,6 +26,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/mrz1836/go-fortress/guardian/policy"
@@ -420,10 +421,19 @@ func (g *Guardian) executeScenariosSequential(ctx context.Context, scenarioList 
 
 // executeScenariosParallel runs scenarios concurrently using a worker pool.
 // Results are collected and returned in the same order as the input scenarios.
+// Scenarios sharing the same FixturePath are serialized to prevent file conflicts.
 func (g *Guardian) executeScenariosParallel(ctx context.Context, scenarioList []*scenarios.Scenario) ([]reporter.ScenarioResult, error) {
 	type indexedResult struct {
 		index  int
 		result reporter.ScenarioResult
+	}
+
+	// Build per-fixture mutex map to serialize scenarios sharing fixtures
+	fixtureLocks := make(map[string]*sync.Mutex)
+	for _, s := range scenarioList {
+		if _, exists := fixtureLocks[s.FixturePath]; !exists {
+			fixtureLocks[s.FixturePath] = &sync.Mutex{}
+		}
 	}
 
 	// Create work channel and results channel
@@ -462,7 +472,11 @@ func (g *Guardian) executeScenariosParallel(ctx context.Context, scenarioList []
 				default:
 				}
 
+				// Acquire fixture lock to serialize scenarios sharing the same fixture
+				fixtureLock := fixtureLocks[item.scenario.FixturePath]
+				fixtureLock.Lock()
 				result, err := g.executeScenario(workerCtx, item.scenario, ScenarioOptions{})
+				fixtureLock.Unlock()
 				if err != nil {
 					results <- indexedResult{
 						index: item.index,
