@@ -63,7 +63,7 @@ func registerQualityScenarios(r *Registry) {
 		Job:         "staticcheck",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
-			LogPatterns: []string{"SA|ST|S1|QF"},
+			LogPatterns: []string{"SA|ST|S1|QF|U1000"},
 		},
 		Timeout: 60 * time.Second,
 		Tags:    []string{"lint"},
