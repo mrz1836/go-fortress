@@ -366,13 +366,40 @@ func (g *Guardian) findWorkflows() ([]string, error) {
 }
 
 // executeScenarios runs multiple scenarios with parallelism control.
-//
-//nolint:unparam // error return reserved for future parallel execution support
+// When ParallelScenarios > 1, scenarios run concurrently using a worker pool.
 func (g *Guardian) executeScenarios(ctx context.Context, scenarioList []*scenarios.Scenario) ([]reporter.ScenarioResult, error) {
+	if len(scenarioList) == 0 {
+		return []reporter.ScenarioResult{}, nil
+	}
+
+	// Sequential fallback for single scenario or parallelism disabled
+	if g.config.ParallelScenarios <= 1 || len(scenarioList) == 1 {
+		return g.executeScenariosSequential(ctx, scenarioList)
+	}
+
+	return g.executeScenariosParallel(ctx, scenarioList)
+}
+
+// executeScenariosSequential runs scenarios one at a time.
+func (g *Guardian) executeScenariosSequential(ctx context.Context, scenarioList []*scenarios.Scenario) ([]reporter.ScenarioResult, error) {
 	results := make([]reporter.ScenarioResult, 0, len(scenarioList))
 
-	// For now, run sequentially; parallel execution will be added in Phase 5 (US3)
 	for _, s := range scenarioList {
+		select {
+		case <-ctx.Done():
+			// Context canceled, skip remaining scenarios
+			for _, remaining := range scenarioList[len(results):] {
+				results = append(results, reporter.ScenarioResult{
+					ScenarioID: remaining.ID,
+					Status:     reporter.ResultSkip,
+					Error:      "context canceled",
+				})
+			}
+
+			return results, ctx.Err()
+		default:
+		}
+
 		result, err := g.executeScenario(ctx, s, ScenarioOptions{})
 		if err != nil {
 			// Record error but continue with other scenarios
@@ -389,6 +416,91 @@ func (g *Guardian) executeScenarios(ctx context.Context, scenarioList []*scenari
 	}
 
 	return results, nil
+}
+
+// executeScenariosParallel runs scenarios concurrently using a worker pool.
+// Results are collected and returned in the same order as the input scenarios.
+func (g *Guardian) executeScenariosParallel(ctx context.Context, scenarioList []*scenarios.Scenario) ([]reporter.ScenarioResult, error) {
+	type indexedResult struct {
+		index  int
+		result reporter.ScenarioResult
+	}
+
+	// Create work channel and results channel
+	work := make(chan struct {
+		index    int
+		scenario *scenarios.Scenario
+	}, len(scenarioList))
+	results := make(chan indexedResult, len(scenarioList))
+
+	// Determine worker count (don't exceed scenario count)
+	workerCount := g.config.ParallelScenarios
+	if workerCount > len(scenarioList) {
+		workerCount = len(scenarioList)
+	}
+
+	// Create a child context for workers
+	workerCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Start worker pool
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			for item := range work {
+				select {
+				case <-workerCtx.Done():
+					results <- indexedResult{
+						index: item.index,
+						result: reporter.ScenarioResult{
+							ScenarioID: item.scenario.ID,
+							Status:     reporter.ResultSkip,
+							Error:      "context canceled",
+						},
+					}
+
+					continue
+				default:
+				}
+
+				result, err := g.executeScenario(workerCtx, item.scenario, ScenarioOptions{})
+				if err != nil {
+					results <- indexedResult{
+						index: item.index,
+						result: reporter.ScenarioResult{
+							ScenarioID: item.scenario.ID,
+							Status:     reporter.ResultError,
+							Error:      err.Error(),
+						},
+					}
+
+					continue
+				}
+
+				results <- indexedResult{
+					index:  item.index,
+					result: *result,
+				}
+			}
+		}()
+	}
+
+	// Send work to workers
+	for i, s := range scenarioList {
+		work <- struct {
+			index    int
+			scenario *scenarios.Scenario
+		}{index: i, scenario: s}
+	}
+	close(work)
+
+	// Collect results in order
+	orderedResults := make([]reporter.ScenarioResult, len(scenarioList))
+	for i := 0; i < len(scenarioList); i++ {
+		r := <-results
+		orderedResults[r.index] = r.result
+	}
+
+	return orderedResults, nil
 }
 
 // executeScenario runs a single scenario and validates results.
