@@ -57,6 +57,19 @@ updates:
       include: "scope"
 
   # ──────────────────────────────────────────────────────────────
+  # 1a. CI Test Fixtures — vuln-fail (NEVER update)
+  #     This fixture intentionally pins vulnerable deps for SEC-003.
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/.github/ci-tester/fixtures/vuln-fail"
+    target-branch: "master"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "*"
+    open-pull-requests-limit: 0
+
+  # ──────────────────────────────────────────────────────────────
   # 1b. Go Modules (magefiles/go.mod - Mage build tool)
   # ──────────────────────────────────────────────────────────────
   - package-ecosystem: "gomod"
