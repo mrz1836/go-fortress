@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run go vet
+        run: go vet ./...
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run tests
+        run: go test -v ./...
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run tests with coverage
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out
+      - name: Check coverage
+        run: |
+          coverage=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | tr -d '%')
+          echo "Total coverage: ${coverage}%"
+          threshold=80
+          # Use awk for comparison instead of bc
+          result=$(awk "BEGIN {print ($coverage < $threshold) ? 1 : 0}")
+          if [ "$result" -eq 1 ]; then
+            echo "Coverage below threshold"
+            exit 1
+          fi
+          echo "Coverage ok: ${coverage}% >= ${threshold}%"
+
+  bench:
+    name: Benchmark
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run benchmarks
+        run: go test -bench=. -benchmem ./...
+
+  fuzz:
+    name: Fuzz
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Run fuzz tests
+        run: go test -fuzz=FuzzAdd -fuzztime=10s ./...

@@ -1,0 +1,9 @@
+name: Invalid Action
+
+# Missing required 'description' field
+# Missing required 'runs' field
+
+inputs:
+  test-input:
+    description: A test input
+    # Missing 'required' field

@@ -34,8 +34,9 @@ dist
 coverage.txt
 coverage.out
 
-# Fuzz Tests
-testdata
+# Fuzz Tests (generated corpus data)
+# Note: testdata/guardian/ should be committed for CI testing fixtures
+**/fuzz*/testdata
 
 # AI Models
 .claude
@@ -46,3 +47,6 @@ node_modules/
 # Speckit
 .specify/scripts
 .specify/templates
+
+# MageX build files
+.mage-x/

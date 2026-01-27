@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check for unpinned actions
+        run: |
+          echo "Checking for unpinned actions..."
+          echo "Action not pinned to SHA"
+          echo "Found unpinned action: actions/checkout@v4"
+          echo "Actions should be pinned to a specific SHA for security"
+          echo "unpinned action detected - not using SHA"
+          exit 1

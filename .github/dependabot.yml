@@ -55,6 +55,31 @@ updates:
       include: "scope"
 
   # ──────────────────────────────────────────────────────────────
+  # 1b. Go Modules (magefiles/go.mod - Mage build tool)
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directory: "/magefiles"
+    target-branch: "master"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    allow:
+      - dependency-type: "direct"
+    groups:
+      mage-deps:
+        patterns:
+          - "*mage*"
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+    assignees: ["mrz1836"]
+    labels: ["chore", "dependencies", "gomod", "magefiles"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  # ──────────────────────────────────────────────────────────────
   # 2. GitHub Actions Workflows
   # ──────────────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"

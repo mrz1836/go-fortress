@@ -1,0 +1,12 @@
+name: Invalid Workflow
+
+on: [push
+
+# This YAML has syntax errors
+jobs:
+  test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: This is invalid
+        run echo "missing colon"

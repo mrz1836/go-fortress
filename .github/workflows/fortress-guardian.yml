@@ -1,0 +1,584 @@
+# ------------------------------------------------------------------------------------
+#  Guardian CI Testing Framework (GoFortress)
+#
+#  Purpose: Execute Guardian scenarios for CI/CD workflow validation
+#  using nektos/act with Docker-in-Docker and optional Redis service.
+#
+#  This workflow runs 35+ test scenarios that verify GitHub Actions workflows
+#  work correctly by executing them locally via act.
+#
+#  Jobs:
+#    - load-env: Load environment configuration from .env.base/.env.custom
+#    - static: Fast static validation (< 2s, no Docker required)
+#    - guardian-scenarios: Full scenario execution with Docker + Redis
+#
+#  Performance Optimizations:
+#    - Unified tool caching (actionlint, mage, act) with version-pinned keys
+#    - Docker image caching with gzip compression (act-latest + act-22.04)
+#    - Redis image caching via cache-redis-image action
+#    - Sparse checkout for minimal clone overhead
+#    - Cache sharing between static and guardian-scenarios jobs
+#
+#  Security:
+#    - SHA-pinned actions for supply chain security
+#    - Minimal permissions (explicitly declared per job)
+#    - No secrets required for execution
+#    - SARIF upload for GitHub Security integration
+#
+#  Maintainer: @mrz1836
+#
+# ------------------------------------------------------------------------------------
+
+name: "Guardian: CI Tester"
+
+# --------------------------------------------------------------------
+# Trigger Configuration
+# --------------------------------------------------------------------
+on:
+  # Run on PRs that affect CI/guardian/magefiles
+  pull_request:
+    paths:
+      - ".github/**"
+      - "guardian/**"
+      - "magefiles/**"
+      - ".env.base"
+      - "go.mod"
+      - "go.sum"
+
+  # Allow manual trigger for debugging
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Specific scenario ID to run (e.g., LINT-001). Leave empty for all scenarios."
+        required: false
+        type: string
+      verbose:
+        description: "Enable verbose output for debugging"
+        type: boolean
+        default: false
+      keep-containers:
+        description: "Keep Docker containers after execution for debugging"
+        type: boolean
+        default: false
+
+# Security: Restrict default permissions (jobs must explicitly request what they need)
+permissions: {}
+
+# --------------------------------------------------------------------
+# Concurrency Control
+# --------------------------------------------------------------------
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------------
+  # Load Environment Variables
+  # ----------------------------------------------------------------------------------
+  load-env:
+    name: Load Environment
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    outputs:
+      env-json: ${{ steps.load-env.outputs.env-json }}
+      primary-runner: ${{ steps.load-env.outputs.primary-runner }}
+      guardian-enabled: ${{ steps.extract-vars.outputs.guardian-enabled }}
+      redis-enabled: ${{ steps.extract-vars.outputs.redis-enabled }}
+      redis-version: ${{ steps.extract-vars.outputs.redis-version }}
+      go-primary-version: ${{ steps.extract-vars.outputs.go-primary-version }}
+    steps:
+      - name: Checkout code (sparse)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: |
+            .github/.env.base
+            .github/.env.custom
+            .github/actions/load-env
+
+      - name: Load environment variables
+        uses: ./.github/actions/load-env
+        id: load-env
+
+      - name: Extract configuration values
+        id: extract-vars
+        run: |
+          ENV_JSON='${{ steps.load-env.outputs.env-json }}'
+
+          # Extract Guardian settings
+          GUARDIAN_ENABLED=$(echo "$ENV_JSON" | jq -r '.ENABLE_CI_GUARDIAN // "false"')
+          echo "guardian-enabled=$GUARDIAN_ENABLED" >> "$GITHUB_OUTPUT"
+          echo "Guardian enabled: $GUARDIAN_ENABLED"
+
+          # Extract Redis settings
+          REDIS_ENABLED=$(echo "$ENV_JSON" | jq -r '.ENABLE_REDIS_SERVICE // "false"')
+          REDIS_VERSION=$(echo "$ENV_JSON" | jq -r '.REDIS_VERSION // "7-alpine"')
+          echo "redis-enabled=$REDIS_ENABLED" >> "$GITHUB_OUTPUT"
+          echo "redis-version=$REDIS_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Redis enabled: $REDIS_ENABLED (version: $REDIS_VERSION)"
+
+          # Extract Go version
+          GO_PRIMARY_VERSION=$(echo "$ENV_JSON" | jq -r '.GO_PRIMARY_VERSION // "1.24.x"')
+          echo "go-primary-version=$GO_PRIMARY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "Go version: $GO_PRIMARY_VERSION"
+
+  # ----------------------------------------------------------------------------------
+  # Static Validation (No Docker Required)
+  # ----------------------------------------------------------------------------------
+  static:
+    name: Static Validation
+    needs: [load-env]
+    if: needs.load-env.outputs.guardian-enabled == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Parse environment variables
+        uses: ./.github/actions/parse-env
+        with:
+          env-json: ${{ needs.load-env.outputs.env-json }}
+
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: ${{ needs.load-env.outputs.go-primary-version }}
+          cache: true
+
+      # Unified tool setup with caching (actionlint + mage only, no act needed for static)
+      - name: Setup Guardian tools
+        uses: ./.github/actions/setup-guardian-tools
+        with:
+          actionlint-version: ${{ env.GUARDIAN_ACTIONLINT_VERSION }}
+          mage-version: ${{ env.MAGE_X_MAGE_VERSION }}
+          act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+          install-act: "false"
+
+      - name: Setup MAGE-X
+        uses: ./.github/actions/setup-magex
+        with:
+          magex-version: ${{ env.MAGE_X_VERSION }}
+          runner-os: ubuntu-24.04
+          use-local: ${{ env.MAGE_X_USE_LOCAL }}
+
+      - name: Run static validation
+        run: |
+          echo "Running Guardian static validation..."
+          magex ci:static
+
+  # ----------------------------------------------------------------------------------
+  # Guardian Scenarios (Requires Docker)
+  # ----------------------------------------------------------------------------------
+  guardian-scenarios:
+    name: Guardian Scenarios
+    needs: [load-env, static]
+    if: |
+      always() &&
+      needs.load-env.outputs.guardian-enabled == 'true' &&
+      needs.static.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # Required for SARIF upload
+
+    # Redis service container (conditionally enabled)
+    services:
+      redis:
+        image: ${{ needs.load-env.outputs.redis-enabled == 'true' && format('redis:{0}', needs.load-env.outputs.redis-version) || 'busybox:latest' }}
+        options: ${{ needs.load-env.outputs.redis-enabled == 'true' && '--health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 10' || '--entrypoint sh' }}
+        ports:
+          - ${{ needs.load-env.outputs.redis-enabled == 'true' && '6379:6379' || '9999:9999' }}
+
+    steps:
+      # Sparse checkout for minimal clone overhead
+      - name: Checkout code (sparse)
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          sparse-checkout: |
+            .github/
+            guardian/
+            magefiles/
+            go.mod
+            go.sum
+            .mage.yaml
+          sparse-checkout-cone-mode: false
+
+      - name: Parse environment variables
+        uses: ./.github/actions/parse-env
+        with:
+          env-json: ${{ needs.load-env.outputs.env-json }}
+
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: ${{ needs.load-env.outputs.go-primary-version }}
+          cache: true
+
+      - name: Setup MAGE-X
+        uses: ./.github/actions/setup-magex
+        with:
+          magex-version: ${{ env.MAGE_X_VERSION }}
+          runner-os: ubuntu-24.04
+          use-local: ${{ env.MAGE_X_USE_LOCAL }}
+
+      # Unified tool setup with caching (actionlint + mage + act)
+      - name: Setup Guardian tools
+        id: guardian-tools
+        uses: ./.github/actions/setup-guardian-tools
+        with:
+          actionlint-version: ${{ env.GUARDIAN_ACTIONLINT_VERSION }}
+          mage-version: ${{ env.MAGE_X_MAGE_VERSION }}
+          act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+          install-act: "true"
+
+      # Cache act Docker images (both act-latest and act-22.04)
+      - name: Cache act Docker images
+        id: cache-act-images
+        uses: ./.github/actions/cache-act-images
+        with:
+          act-version: ${{ env.GUARDIAN_ACT_VERSION }}
+
+      # Cache Redis service image (when enabled)
+      - name: Cache Redis image
+        if: needs.load-env.outputs.redis-enabled == 'true'
+        uses: ./.github/actions/cache-redis-image
+        with:
+          redis-version: ${{ needs.load-env.outputs.redis-version }}
+          runner-os: ${{ runner.os }}
+
+      - name: Check Docker status
+        run: |
+          echo "Docker version:"
+          docker --version
+          echo ""
+          echo "Docker images:"
+          docker images
+          echo ""
+          echo "Disk space:"
+          df -h
+          echo ""
+          echo "Cache status:"
+          echo "  • Guardian tools cache: ${{ steps.guardian-tools.outputs.cache-hit }}"
+          echo "  • Act images cache: ${{ steps.cache-act-images.outputs.cache-hit }}"
+
+      - name: Setup Redis environment
+        if: needs.load-env.outputs.redis-enabled == 'true'
+        run: |
+          echo "REDIS_ADDR=localhost:6379" >> "$GITHUB_ENV"
+          echo "REDIS_HOST=localhost" >> "$GITHUB_ENV"
+          echo "REDIS_PORT=6379" >> "$GITHUB_ENV"
+          echo "REDIS_URL=redis://localhost:6379" >> "$GITHUB_ENV"
+
+      # Run single scenario if specified, otherwise run full verification
+      - name: Run Guardian scenarios
+        id: run-guardian
+        run: |
+          SCENARIO="${{ github.event.inputs.scenario }}"
+          VERBOSE="${{ github.event.inputs.verbose }}"
+          KEEP="${{ github.event.inputs.keep-containers }}"
+
+          # Set environment variables for Guardian
+          export GUARDIAN_VERBOSE="${VERBOSE:-false}"
+          export GUARDIAN_KEEP_CONTAINERS="${KEEP:-false}"
+
+          if [ -n "$SCENARIO" ]; then
+            echo "Running single scenario: $SCENARIO"
+            magex ci:scenario "name=$SCENARIO" "verbose=$GUARDIAN_VERBOSE" "keep=$GUARDIAN_KEEP_CONTAINERS"
+          else
+            echo "Running full Guardian verification..."
+            magex ci:verify
+          fi
+
+      - name: Upload SARIF report
+        if: always() && hashFiles('.mage-x/guardian.sarif') != ''
+        uses: github/codeql-action/upload-sarif@ce28f5bb42b7a9f2c824e633a3f6ee835bab6858 # v3.29.0
+        with:
+          sarif_file: .mage-x/guardian.sarif
+          category: guardian
+
+      - name: Upload CI results artifact
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: guardian-results
+          path: |
+            .mage-x/ci-results.jsonl
+            .mage-x/guardian.sarif
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ----------------------------------------------------------------------------------
+  # Status Check and Detailed Summary
+  # ----------------------------------------------------------------------------------
+  status-check:
+    name: Guardian Status
+    if: always()
+    needs: [load-env, static, guardian-scenarios]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Download Guardian results
+        if: always()
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: guardian-results
+          path: ./results/
+        continue-on-error: true
+
+      - name: Build detailed results summary
+        run: |
+          # Calculate timing
+          START_TIME="${{ github.event.workflow_run.created_at || github.event.pull_request.created_at || '' }}"
+          END_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+          {
+            echo "# 🛡️ Guardian CI Testing Report"
+            echo ""
+            echo "_Generated at: ${END_TIME}_"
+            echo ""
+            echo "---"
+            echo ""
+
+            # Job Status Overview
+            echo "## 📊 Job Status Overview"
+            echo ""
+            echo "| Job | Status | Result |"
+            echo "|-----|--------|--------|"
+
+            # Load Environment
+            LOAD_ENV_RESULT="${{ needs.load-env.result }}"
+            LOAD_ENV_ICON=$([[ "$LOAD_ENV_RESULT" == "success" ]] && echo "✅" || ([[ "$LOAD_ENV_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🔧 Load Environment | $LOAD_ENV_RESULT | $LOAD_ENV_ICON |"
+
+            # Static Validation
+            STATIC_RESULT="${{ needs.static.result }}"
+            STATIC_ICON=$([[ "$STATIC_RESULT" == "success" ]] && echo "✅" || ([[ "$STATIC_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🔍 Static Validation | $STATIC_RESULT | $STATIC_ICON |"
+
+            # Guardian Scenarios
+            SCENARIOS_RESULT="${{ needs.guardian-scenarios.result }}"
+            SCENARIOS_ICON=$([[ "$SCENARIOS_RESULT" == "success" ]] && echo "✅" || ([[ "$SCENARIOS_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🧪 Guardian Scenarios | $SCENARIOS_RESULT | $SCENARIOS_ICON |"
+
+            echo ""
+
+            # Check if Guardian is disabled
+            if [[ "${{ needs.load-env.outputs.guardian-enabled }}" != "true" ]]; then
+              echo "> ⚠️ **Note**: Guardian is disabled. Set \`ENABLE_CI_GUARDIAN=true\` in \`.github/.env.custom\` to enable."
+              echo ""
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Process scenario results from JSONL file
+          JSONL_FILE="./results/ci-results.jsonl"
+          if [ -f "$JSONL_FILE" ]; then
+            {
+              echo ""
+              echo "---"
+              echo ""
+              echo "## 🧪 Scenario Results"
+              echo ""
+
+              # Count results (only scenario events, not metadata like run_start/run_end)
+              TOTAL=$(grep -c '"type":"scenario"' "$JSONL_FILE" 2>/dev/null) || TOTAL=0
+              PASSED=$(grep -c '"status":"pass"' "$JSONL_FILE" 2>/dev/null) || PASSED=0
+              FAILED=$(grep -c '"status":"fail"' "$JSONL_FILE" 2>/dev/null) || FAILED=0
+              ERRORS=$(grep -c '"status":"error"' "$JSONL_FILE" 2>/dev/null) || ERRORS=0
+              SKIPPED=$(grep -c '"status":"skip"' "$JSONL_FILE" 2>/dev/null) || SKIPPED=0
+
+              echo "### Summary: ${PASSED}/${TOTAL} scenarios passed"
+              echo ""
+
+              if [[ "$PASSED" -eq "$TOTAL" ]]; then
+                echo "🎉 **All scenarios passed!**"
+              else
+                echo "⚠️ **Some scenarios need attention**"
+              fi
+
+              echo ""
+              echo "| Metric | Count |"
+              echo "|--------|-------|"
+              echo "| ✅ Passed | $PASSED |"
+              echo "| ❌ Failed | $FAILED |"
+              echo "| 💥 Errors | $ERRORS |"
+              echo "| ⏭️ Skipped | $SKIPPED |"
+              echo "| **Total** | **$TOTAL** |"
+              echo ""
+
+              # Detailed results table
+              echo "### Detailed Results"
+              echo ""
+              echo "| Scenario | Category | Status | Duration | Details |"
+              echo "|----------|----------|--------|----------|---------|"
+
+              # Parse only scenario events from the JSONL file (skip run_start, static_complete, run_end)
+              grep '"type":"scenario"' "$JSONL_FILE" | while IFS= read -r line; do
+                SCENARIO_ID=$(echo "$line" | jq -r '.id // "unknown"')
+                STATUS=$(echo "$line" | jq -r '.status // "unknown"')
+                DURATION=$(echo "$line" | jq -r '.duration_ms // "N/A"')
+                ERROR=$(echo "$line" | jq -r '.error // ""')
+                MISSING=$(echo "$line" | jq -r '.missing_patterns // [] | join(", ")')
+
+                # Determine category from scenario ID prefix
+                CATEGORY="Other"
+                case "$SCENARIO_ID" in
+                  LINT-*) CATEGORY="Quality" ;;
+                  TEST-*) CATEGORY="Testing" ;;
+                  RACE-*) CATEGORY="Quality" ;;
+                  COV-*) CATEGORY="Coverage" ;;
+                  SEC-*) CATEGORY="Security" ;;
+                  VULN-*) CATEGORY="Security" ;;
+                  BENCH-*) CATEGORY="Quality" ;;
+                  FUZZ-*) CATEGORY="Quality" ;;
+                  PASS-*) CATEGORY="Quality" ;;
+                  FORK-*) CATEGORY="Fork PR" ;;
+                  SLSA-*) CATEGORY="Supply Chain" ;;
+                  SBOM-*) CATEGORY="Supply Chain" ;;
+                  ENV-*) CATEGORY="Config" ;;
+                  MATRIX-*) CATEGORY="Config" ;;
+                  CACHE-*) CATEGORY="Config" ;;
+                esac
+
+                # Format duration (convert milliseconds to human-readable format)
+                if [[ "$DURATION" =~ ^[0-9]+$ ]]; then
+                  if [[ "$DURATION" -ge 60000 ]]; then
+                    DURATION_MIN=$((DURATION / 60000))
+                    DURATION_SEC=$(((DURATION % 60000) / 1000))
+                    DURATION_DISPLAY="${DURATION_MIN}m ${DURATION_SEC}s"
+                  elif [[ "$DURATION" -ge 1000 ]]; then
+                    DURATION_SEC=$((DURATION / 1000))
+                    DURATION_DISPLAY="${DURATION_SEC}s"
+                  else
+                    DURATION_DISPLAY="${DURATION}ms"
+                  fi
+                elif [[ "$DURATION" =~ ^[0-9]+\.?[0-9]*s$ ]]; then
+                  DURATION_DISPLAY="$DURATION"
+                else
+                  DURATION_DISPLAY="$DURATION"
+                fi
+
+                # Status icon
+                STATUS_ICON=$([[ "$STATUS" == "pass" ]] && echo "✅" || ([[ "$STATUS" == "fail" ]] && echo "❌" || ([[ "$STATUS" == "error" ]] && echo "💥" || echo "⏭️")))
+
+                # Details
+                DETAILS=""
+                if [[ -n "$ERROR" ]]; then
+                  DETAILS="$ERROR"
+                elif [[ -n "$MISSING" ]]; then
+                  DETAILS="Missing: $MISSING"
+                fi
+
+                # Truncate details if too long
+                if [[ ${#DETAILS} -gt 50 ]]; then
+                  DETAILS="${DETAILS:0:47}..."
+                fi
+
+                echo "| $SCENARIO_ID | $CATEGORY | $STATUS_ICON $STATUS | $DURATION_DISPLAY | $DETAILS |"
+              done
+
+              echo ""
+
+              # Failure analysis section (if there are failures)
+              if [[ "$FAILED" -gt 0 ]] || [[ "$ERRORS" -gt 0 ]]; then
+                echo "---"
+                echo ""
+                echo "## 🔍 Failure Analysis"
+                echo ""
+
+                grep -E '"status":"(fail|error)"' "$JSONL_FILE" | while IFS= read -r line; do
+                  SCENARIO_ID=$(echo "$line" | jq -r '.id // "unknown"')
+                  STATUS=$(echo "$line" | jq -r '.status // "unknown"')
+                  ERROR=$(echo "$line" | jq -r '.error // "No error message"')
+                  MISSING=$(echo "$line" | jq -r '.missing_patterns // []')
+                  OUTPUT=$(echo "$line" | jq -r '.output // ""' | head -c 500)
+
+                  echo "### ❌ $SCENARIO_ID ($STATUS)"
+                  echo ""
+
+                  if [[ -n "$ERROR" ]] && [[ "$ERROR" != "No error message" ]] && [[ "$ERROR" != "null" ]]; then
+                    echo "**Error:** $ERROR"
+                    echo ""
+                  fi
+
+                  if [[ "$MISSING" != "[]" ]] && [[ "$MISSING" != "null" ]]; then
+                    echo "**Missing patterns:**"
+                    echo "$MISSING" | jq -r '.[]' | while read -r pattern; do
+                      echo "- \`$pattern\`"
+                    done
+                    echo ""
+                  fi
+
+                  if [[ -n "$OUTPUT" ]] && [[ "$OUTPUT" != "null" ]]; then
+                    echo "<details>"
+                    echo "<summary>Output (truncated)</summary>"
+                    echo ""
+                    echo '```'
+                    echo "$OUTPUT"
+                    echo '```'
+                    echo "</details>"
+                    echo ""
+                  fi
+                done
+              fi
+
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> ℹ️ No detailed scenario results available. Check the Guardian Scenarios job logs." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Configuration section
+          {
+            echo ""
+            echo "---"
+            echo ""
+            echo "## ⚙️ Configuration"
+            echo ""
+            echo "| Setting | Value |"
+            echo "|---------|-------|"
+            echo "| Go Version | ${{ needs.load-env.outputs.go-primary-version }} |"
+            echo "| Runner | ubuntu-24.04 |"
+            echo "| Guardian Enabled | ${{ needs.load-env.outputs.guardian-enabled }} |"
+            echo "| Redis Enabled | ${{ needs.load-env.outputs.redis-enabled }} |"
+            echo "| Redis Version | ${{ needs.load-env.outputs.redis-version }} |"
+            echo ""
+            echo "---"
+            echo ""
+            echo "_Guardian CI Testing Framework - Validating workflows before they reach production._"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Check for failures
+        run: |
+          # Skip check if Guardian is disabled
+          if [[ "${{ needs.load-env.outputs.guardian-enabled }}" != "true" ]]; then
+            echo "Guardian is disabled - skipping status check"
+            exit 0
+          fi
+
+          FAILED=false
+
+          if [[ "${{ needs.static.result }}" == "failure" || "${{ needs.static.result }}" == "cancelled" ]]; then
+            echo "Static validation failed or was cancelled"
+            FAILED=true
+          fi
+
+          if [[ "${{ needs.guardian-scenarios.result }}" == "failure" || "${{ needs.guardian-scenarios.result }}" == "cancelled" ]]; then
+            echo "Guardian scenarios failed or were cancelled"
+            FAILED=true
+          fi
+
+          if [[ "$FAILED" == "true" ]]; then
+            echo "One or more Guardian jobs failed"
+            exit 1
+          fi
+
+          echo "All Guardian checks passed"

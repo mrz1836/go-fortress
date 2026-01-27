@@ -1,0 +1,12 @@
+# Gitleaks configuration for go-fortress
+# See https://github.com/gitleaks/gitleaks#configuration
+
+title = "go-fortress gitleaks config"
+
+# Allowlist for intentional test fixtures containing fake secrets
+[allowlist]
+description = "Allow fake secrets in CI testing fixtures"
+paths = [
+  # Guardian CI testing fixtures with intentional fake secrets for security scenario testing
+  '''\.github/ci-tester/fixtures/sec-fail/.*''',
+]

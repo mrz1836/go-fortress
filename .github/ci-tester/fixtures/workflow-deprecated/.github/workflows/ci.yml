@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run test
+        run: |
+          echo "Running on deprecated ubuntu-18.04 runner"
+          echo "deprecated runner detected: ubuntu-18"
+          echo "Warning: ubuntu-18.04 is deprecated"
+          exit 1

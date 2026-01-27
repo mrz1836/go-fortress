@@ -1,25 +1,61 @@
 // Package fortress provides some simple Go functions to showcase the Go-Fortress CI/CD capabilities.
 package fortress
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
 
-// Greet returns a greeting message for the given first name.
+// ErrBreachDetected is returned when Guard detects forbidden content in the input.
+var ErrBreachDetected = errors.New("🚫 breach detected")
+
+// Fortify wraps a message with fortress protection markers.
 //
 // This function performs the following steps:
-// - Formats a greeting string using the provided first name.
+// - Formats a protected string using the provided message.
 //
 // Parameters:
-// - firstname: The first name to include in the greeting message.
+// - message: The message to fortify.
 //
 // Returns:
-// - A string containing the greeting message.
+// - A string containing the fortified message with fortress markers.
 //
 // Side Effects:
 // - None.
 //
 // Notes:
-// - Assumes firstname is a non-empty string; no validation is performed.
+// - Accepts any string input including empty strings.
 // - This function is standalone and not part of a larger workflow.
-func Greet(firstname string) string {
-	return fmt.Sprintf("Hello %s", firstname)
+func Fortify(message string) string {
+	return fmt.Sprintf("🏰 %s 🏰", message)
+}
+
+// Guard validates input against a list of forbidden values.
+//
+// This function performs the following steps:
+// - Checks if the input contains any forbidden substrings.
+// - Returns the original input if safe, or an error if breached.
+//
+// Parameters:
+// - input: The string to validate.
+// - forbidden: A slice of forbidden substrings to check against.
+//
+// Returns:
+// - The original input string if no forbidden values are found.
+// - An error if any forbidden value is detected in the input.
+//
+// Side Effects:
+// - None.
+//
+// Notes:
+// - An empty forbidden list will always return the input as safe.
+// - Matching is case-sensitive and checks for substring containment.
+func Guard(input string, forbidden []string) (string, error) {
+	for _, f := range forbidden {
+		if strings.Contains(input, f) {
+			return "", fmt.Errorf("%w: contains %q", ErrBreachDetected, f)
+		}
+	}
+	return input, nil
 }

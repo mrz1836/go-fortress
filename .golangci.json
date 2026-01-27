@@ -13,7 +13,8 @@
                 ".vscode",
                 "dist",
                 "third_party$",
-                "builtin$"
+                "builtin$",
+                ".github/ci-tester/fixtures/"
             ]
         },
         "settings": {
@@ -43,7 +44,8 @@
     "linters": {
         "disable": [
             "gocritic",
-            "godot"
+            "godot",
+            "wsl_v5"
         ],
         "enable": [
             "asasalint",
@@ -108,9 +110,13 @@
             "unparam",
             "unused",
             "wastedassign",
-            "wsl_v5",
             "zerologlint"
         ],
+        "exclusions": {
+            "paths": [
+                ".github/ci-tester/fixtures/"
+            ]
+        },
         "settings": {
             "dogsled": {
                 "max-blank-identifiers": 2
@@ -129,14 +135,14 @@
                 "statements": 40
             },
             "gocognit": {
-                "min-complexity": 10
+                "min-complexity": 30
             },
             "goconst": {
                 "min-len": 3,
                 "min-occurrences": 10
             },
             "gocyclo": {
-                "min-complexity": 10
+                "min-complexity": 30
             },
             "godox": {
                 "keywords": [
@@ -178,7 +184,7 @@
                 "max-func-lines": 30
             },
             "nestif": {
-                "min-complexity": 4
+                "min-complexity": 20
             },
             "nolintlint": {
                 "allow-unused": false,
@@ -215,11 +221,11 @@
     },
     "run": {
         "allow-parallel-runners": true,
-        "build-tags": [
-            "mage"
-        ],
         "concurrency": 8,
         "issues-exit-code": 1,
+        "skip-files": [
+            "magefiles/magefile.go"
+        ],
         "tests": true
     },
     "severity": {

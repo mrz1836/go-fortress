@@ -1,0 +1,6 @@
+{"type":"run_start","timestamp":"2026-01-24T10:00:00Z","version":"1.0.0","mode":"verify"}
+{"type":"static_complete","timestamp":"2026-01-24T10:00:02Z","findings":0,"duration_ms":1850}
+{"type":"scenario","id":"LINT-001","status":"pass","duration_ms":4523,"exit_code":1}
+{"type":"scenario","id":"TEST-001","status":"pass","duration_ms":6891,"exit_code":1}
+{"type":"scenario","id":"SEC-001","status":"pass","duration_ms":3421,"exit_code":1}
+{"type":"run_end","timestamp":"2026-01-24T10:02:35Z","passed":35,"failed":0,"skipped":0,"errors":0}

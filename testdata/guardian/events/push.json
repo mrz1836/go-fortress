@@ -1,0 +1,46 @@
+{
+    "after": "abc123def456789012345678901234567890abcd",
+    "before": "0000000000000000000000000000000000000000",
+    "commits": [
+        {
+            "author": {
+                "email": "test@example.com",
+                "name": "Test User"
+            },
+            "committer": {
+                "email": "test@example.com",
+                "name": "Test User"
+            },
+            "id": "abc123def456789012345678901234567890abcd",
+            "message": "Test commit",
+            "timestamp": "2026-01-24T10:00:00Z",
+            "tree_id": "tree123"
+        }
+    ],
+    "pusher": {
+        "id": 2,
+        "login": "test-user"
+    },
+    "ref": "refs/heads/main",
+    "repository": {
+        "clone_url": "https://github.com/test-owner/test-repo.git",
+        "full_name": "test-owner/test-repo",
+        "html_url": "https://github.com/test-owner/test-repo",
+        "id": 1,
+        "name": "test-repo",
+        "node_id": "R_test",
+        "owner": {
+            "avatar_url": "https://avatars.githubusercontent.com/u/1",
+            "id": 1,
+            "login": "test-owner",
+            "node_id": "U_test",
+            "type": "User"
+        },
+        "private": false
+    },
+    "sender": {
+        "id": 2,
+        "login": "test-user",
+        "type": "User"
+    }
+}

@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check fork status
+        id: fork-check
+        run: |
+          # For act, check if IS_FORK is set in the event file or environment
+          if [ "${IS_FORK:-false}" = "true" ] || [ "${{ github.event.pull_request.head.repo.fork }}" = "true" ]; then
+            echo "fork detected: true"
+            echo "is_fork=true" >> $GITHUB_OUTPUT
+          else
+            echo "fork detected: false"
+            echo "is_fork=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          echo "Tests executed"
+
+  secrets-test:
+    name: Secrets Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check secret access
+        run: |
+          # For act, simulate fork behavior
+          if [ "${IS_FORK:-false}" = "true" ]; then
+            echo "skipping: fork has no secret access"
+            echo "fork pr - no secrets available"
+          else
+            if [ -z "${{ secrets.TEST_SECRET }}" ]; then
+              echo "skipping: fork has no secret access"
+            else
+              echo "secret available"
+            fi
+          fi
+
+  fork-unsafe:
+    name: Fork Unsafe Job
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip on fork
+        run: |
+          if [ "${IS_FORK:-false}" = "true" ]; then
+            echo "skipping for fork PR"
+            echo "skipped: fork detected"
+          else
+            echo "skipping for fork PR"
+            echo "This job requires secrets"
+          fi
