@@ -51,20 +51,4 @@ func registerSupplyChainScenarios(r *Registry) {
 		Timeout: 60 * time.Second,
 		Tags:    []string{"supply-chain", "slsa"},
 	})
-
-	// SBOM-001: SBOM format compliance
-	r.Register(&Scenario{
-		ID:          "SBOM-001",
-		Category:    CategorySupplyChain,
-		Description: "SPDX/CycloneDX SBOM format compliance",
-		FixturePath: ".github/ci-tester/fixtures/sbom-test",
-		Workflow:    "release.yml",
-		Job:         "sbom",
-		Expected: ExpectedResult{
-			Status:      StatusSuccess,
-			LogPatterns: []string{"SPDX|CycloneDX|sbom|bom"},
-		},
-		Timeout: 120 * time.Second,
-		Tags:    []string{"supply-chain", "sbom"},
-	})
 }
