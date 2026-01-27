@@ -356,7 +356,7 @@ Witness the symphony of 18 specialized workflows performing in perfect harmony. 
 **18 Specialized Workflows:**
 
 ```
-fortress.yml (Main Orchestrator v1.4.0)
+fortress.yml (Main Orchestrator v1.5.0)
 │
 ├── load-env ─────────────────────► Loads .env.base + .env.custom
 │
