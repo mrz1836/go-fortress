@@ -191,7 +191,10 @@ runs:
 
         # Verify actionlint
         if command -v actionlint >/dev/null 2>&1; then
-          ACTIONLINT_VERSION=$(actionlint --version 2>&1 | head -1 || echo "unknown")
+          ACTIONLINT_VERSION=$(actionlint --version 2>&1 | head -1 || true)
+          if [ -z "$ACTIONLINT_VERSION" ]; then
+            ACTIONLINT_VERSION="installed"
+          fi
           echo "✅ actionlint: $ACTIONLINT_VERSION"
           echo "actionlint-version=$ACTIONLINT_VERSION" >> $GITHUB_OUTPUT
         else
@@ -201,7 +204,7 @@ runs:
 
         # Verify mage
         if command -v mage >/dev/null 2>&1; then
-          MAGE_VERSION=$(mage -version 2>&1 | head -1)
+          MAGE_VERSION=$(mage -version 2>&1 | head -1 || true)
           if [ -z "$MAGE_VERSION" ]; then
             MAGE_VERSION="installed"
           fi
@@ -215,7 +218,7 @@ runs:
         # Verify act (only if requested)
         if [[ "${{ inputs.install-act }}" == "true" ]]; then
           if command -v act >/dev/null 2>&1; then
-            ACT_VERSION=$(act --version 2>&1 | head -1 || echo "unknown")
+            ACT_VERSION=$(act --version 2>&1 | head -1 || true)
             echo "✅ act: $ACT_VERSION"
             echo "act-version=$ACT_VERSION" >> $GITHUB_OUTPUT
           else
