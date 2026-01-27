@@ -6,7 +6,7 @@ require (
 	github.com/owenrumney/go-sarif/v3 v3.3.0
 	github.com/rhysd/actionlint v1.7.10
 	github.com/stretchr/testify v1.11.1
-	go.yaml.in/yaml/v4 v4.0.0-rc.3 // pinned: actionlint v1.7.10 incompatible with rc.4 (yaml.ParserError API change)
+	go.yaml.in/yaml/v4 v4.0.0-rc.4 // pinned: actionlint v1.7.10 incompatible with rc.4 (yaml.ParserError API change)
 )
 
 require (
