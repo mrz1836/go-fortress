@@ -1,5 +1,5 @@
 
-[GUARDIAN] Available CI Scenarios (37 total)
+[GUARDIAN] Available CI Scenarios (36 total)
 --------------------------------------------------
 
 Quality (12):
@@ -38,11 +38,10 @@ Config (7):
   [FAIL] WORKFLOW-002 - Deprecated runner labels detection [p2]
   [FAIL] ACTION-001 - Unpinned action static detection [p2]
 
-Supply Chain (4):
+Supply Chain (3):
   [PASS] SLSA-001 - Provenance attestation present [p3]
   [PASS] SLSA-002 - Build isolation settings [p3]
   [PASS] SLSA-003 - Dependencies pinned to digests [p3]
-  [PASS] SBOM-001 - SPDX/CycloneDX format compliance [p3]
 
 Pass (2):
   [PASS] PASS-001 - Clean code passes all checks [p2]

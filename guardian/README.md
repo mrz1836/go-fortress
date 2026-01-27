@@ -181,7 +181,7 @@ exceptions:
 - **Security**: SEC-001 to SEC-003, VULN-001/002, GITLEAKS-001/002
 - **Fork Safety**: FORK-001 to FORK-003
 - **Config**: MATRIX-001, ENV-001, CACHE-001/002, WORKFLOW-001/002, ACTION-001/002
-- **Supply Chain**: SLSA-001 to SLSA-003, SBOM-001
+- **Supply Chain**: SLSA-001 to SLSA-003
 - **Pass Cases**: PASS-001/002
 
 ## Creating Custom Scenarios
