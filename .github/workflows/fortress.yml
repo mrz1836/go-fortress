@@ -318,28 +318,242 @@ jobs:
     needs: [setup, test-magex, warm-cache, security, code-quality, pre-commit, test-suite, benchmarks]
     permissions:
       contents: read # Read repository content for status checking
+      actions: read # Required for downloading failure marker artifacts
     runs-on: ${{ needs.setup.outputs.primary-runner }}
     steps:
       # --------------------------------------------------------------------
-      # Build a summary table for the UI (always runs)
+      # Download failure markers to identify actual failures vs cancelled
       # --------------------------------------------------------------------
-      - name: 📊 Build results summary
+      - name: 📥 Download failure markers
+        id: download-markers
+        continue-on-error: true
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          pattern: failure-marker-*
+          path: ./failure-markers/
+          merge-multiple: true
+      # --------------------------------------------------------------------
+      # Parse failure markers to identify actual failures vs cancelled
+      # --------------------------------------------------------------------
+      - name: 🔍 Parse failure markers
+        id: parse-failures
+        run: |
+          FAILURE_COUNT=0
+          FAILURE_JOBS=""
+          FAILURE_DETAILS=""
+
+          # Check if any failure markers were downloaded
+          if [[ -d "./failure-markers" ]]; then
+            # Find all JSON marker files
+            while IFS= read -r -d '' marker_file; do
+              if [[ -f "$marker_file" ]]; then
+                FAILURE_COUNT=$((FAILURE_COUNT + 1))
+
+                # Extract details from JSON
+                FAILED_JOB=$(jq -r '.failed_job // .github_job // "Unknown"' "$marker_file")
+                FAILED_STEP=$(jq -r '.failed_step // "Unknown"' "$marker_file")
+                FAILURE_TOOL=$(jq -r '.failure_tool // "Unknown"' "$marker_file")
+                FAILURE_SUMMARY=$(jq -r '.failure_summary // ""' "$marker_file")
+                REASON=$(jq -r '.reason // ""' "$marker_file")
+
+                # Build comma-separated list of failed jobs
+                if [[ -n "$FAILURE_JOBS" ]]; then
+                  FAILURE_JOBS="${FAILURE_JOBS},${FAILED_JOB}"
+                else
+                  FAILURE_JOBS="$FAILED_JOB"
+                fi
+
+                # Build details for summary (pipe-separated records, newline-separated fields)
+                DETAIL="${FAILED_JOB}|${FAILED_STEP}|${FAILURE_TOOL}|${FAILURE_SUMMARY}|${REASON}"
+                if [[ -n "$FAILURE_DETAILS" ]]; then
+                  FAILURE_DETAILS="${FAILURE_DETAILS}"$'\n'"${DETAIL}"
+                else
+                  FAILURE_DETAILS="$DETAIL"
+                fi
+
+                echo "📋 Found failure marker: $FAILED_JOB"
+              fi
+            done < <(find ./failure-markers -name "*.json" -print0 2>/dev/null)
+          fi
+
+          echo "failure-count=$FAILURE_COUNT" >> "$GITHUB_OUTPUT"
+          echo "failure-jobs=$FAILURE_JOBS" >> "$GITHUB_OUTPUT"
+
+          # Use heredoc for multiline output
+          {
+            echo "failure-details<<EOF"
+            echo "$FAILURE_DETAILS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          if [[ "$FAILURE_COUNT" -gt 0 ]]; then
+            echo "🔴 Found $FAILURE_COUNT failure marker(s): $FAILURE_JOBS"
+          else
+            echo "✅ No failure markers found"
+          fi
+
+      # --------------------------------------------------------------------
+      # Create error annotations for failed jobs (prominent in GitHub UI)
+      # --------------------------------------------------------------------
+      - name: 🚨 Create failure annotations
+        if: steps.parse-failures.outputs.failure-count != '0'
+        env:
+          FAILURE_DETAILS: ${{ steps.parse-failures.outputs.failure-details }}
+        run: |
+          echo "Creating error annotations for failed jobs..."
+
+          # Parse failure details and create annotations
+          while IFS='|' read -r job step tool summary reason; do
+            if [[ -n "$job" && "$job" != "Unknown" ]]; then
+              # Create GitHub error annotation
+              echo "::error title=FAILED: ${job}::${step} failed${tool:+ (${tool})}${summary:+: ${summary}}"
+            fi
+          done <<< "$FAILURE_DETAILS"
+
+      # --------------------------------------------------------------------
+      # Build enhanced summary distinguishing FAILED vs CANCELLED jobs
+      # --------------------------------------------------------------------
+      - name: 📊 Build enhanced results summary
+        env:
+          FAILURE_COUNT: ${{ steps.parse-failures.outputs.failure-count }}
+          FAILURE_JOBS: ${{ steps.parse-failures.outputs.failure-jobs }}
+          FAILURE_DETAILS: ${{ steps.parse-failures.outputs.failure-details }}
+          SETUP_RESULT: ${{ needs.setup.result }}
+          MAGEX_RESULT: ${{ needs.test-magex.result }}
+          CACHE_RESULT: ${{ needs.warm-cache.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          QUALITY_RESULT: ${{ needs.code-quality.result }}
+          PRECOMMIT_RESULT: ${{ needs.pre-commit.result }}
+          TESTS_RESULT: ${{ needs.test-suite.result }}
+          BENCH_RESULT: ${{ needs.benchmarks.result }}
+          CACHE_ENABLED: ${{ needs.setup.outputs.cache-warming-enabled }}
+          PRECOMMIT_ENABLED: ${{ needs.setup.outputs.pre-commit-enabled }}
+          TESTS_ENABLED: ${{ needs.setup.outputs.go-tests-enabled }}
         run: |
           {
+            # Show prominent failure banner if there were actual failures
+            if [[ "$FAILURE_COUNT" -gt 0 ]]; then
+              echo "> [!CAUTION]"
+              echo "> **${FAILURE_COUNT} job(s) FAILED** and triggered workflow cancellation."
+              echo "> Jobs marked 'cancelled' below were stopped due to this failure."
+              echo ""
+
+              # Show actual failures table with details
+              echo "### ❌ Actual Failures"
+              echo ""
+              echo "| Job | Step | Tool | Reason |"
+              echo "|-----|------|------|--------|"
+
+              while IFS='|' read -r job step tool summary reason; do
+                if [[ -n "$job" ]]; then
+                  # Escape markdown special characters
+                  job_escaped="${job//|/\\|}"
+                  step_escaped="${step//|/\\|}"
+                  tool_escaped="${tool//|/\\|}"
+                  reason_display="${summary:-$reason}"
+                  reason_escaped="${reason_display//|/\\|}"
+                  echo "| **${job_escaped}** | ${step_escaped} | ${tool_escaped} | ${reason_escaped} |"
+                fi
+              done <<< "$FAILURE_DETAILS"
+              echo ""
+            fi
+
             echo "## 🚦 Workflow Results"
             echo ""
             echo "| Component | Result | Status |"
             echo "|-----------|--------|--------|"
-            echo "| 🎯 Setup | ${{ needs.setup.result }} | Required |"
-            echo "| 🪄 MAGE-X | ${{ needs.test-magex.result }} | Required |"
-            echo "| 💾 Warm Cache | ${{ needs.warm-cache.result }} | ${{ needs.setup.outputs.cache-warming-enabled == 'true' && 'Required' || 'Disabled' }} |"
-            echo "| 🔒 Security | ${{ needs.security.result }} | Required |"
-            echo "| 📊 Code Quality | ${{ needs.code-quality.result }} | Required |"
-            echo "| 🪝 Pre-commit | ${{ needs.pre-commit.result }} | ${{ needs.setup.outputs.pre-commit-enabled == 'true' && 'Required' || 'Skipped' }} |"
-            echo "| 🧪 Test Suite | ${{ needs.test-suite.result }} | ${{ needs.setup.outputs.go-tests-enabled == 'true' && 'Required' || 'Skipped' }} |"
-            echo "| 🏃 Benchmarks | ${{ needs.benchmarks.result }} | Optional ⚠️ |"
+
+            # Helper function to determine result display
+            get_result_display() {
+              local result="$1"
+              local job_name="$2"
+              local is_required="$3"
+
+              # Check if this job is in the actual failures list
+              if [[ "$FAILURE_JOBS" == *"$job_name"* ]] || [[ "$result" == "failure" ]]; then
+                echo "❌ **FAILED**"
+              elif [[ "$result" == "cancelled" ]]; then
+                echo "⏹️ cancelled"
+              elif [[ "$result" == "skipped" ]]; then
+                echo "⏭️ skipped"
+              elif [[ "$result" == "success" ]]; then
+                echo "✅ success"
+              else
+                echo "$result"
+              fi
+            }
+
+            # Helper function to determine status note
+            get_status_note() {
+              local result="$1"
+              local is_required="$2"
+
+              if [[ "$result" == "cancelled" && "$FAILURE_COUNT" -gt 0 ]]; then
+                echo "Cancelled (failure above)"
+              else
+                echo "$is_required"
+              fi
+            }
+
+            # Setup
+            SETUP_DISPLAY=$(get_result_display "$SETUP_RESULT" "Setup" "Required")
+            SETUP_NOTE=$(get_status_note "$SETUP_RESULT" "Required")
+            echo "| 🎯 Setup | $SETUP_DISPLAY | $SETUP_NOTE |"
+
+            # MAGE-X
+            MAGEX_DISPLAY=$(get_result_display "$MAGEX_RESULT" "MAGE-X" "Required")
+            MAGEX_NOTE=$(get_status_note "$MAGEX_RESULT" "Required")
+            echo "| 🪄 MAGE-X | $MAGEX_DISPLAY | $MAGEX_NOTE |"
+
+            # Warm Cache
+            CACHE_REQ="Disabled"
+            [[ "$CACHE_ENABLED" == "true" ]] && CACHE_REQ="Required"
+            CACHE_DISPLAY=$(get_result_display "$CACHE_RESULT" "Warm Cache" "$CACHE_REQ")
+            CACHE_NOTE=$(get_status_note "$CACHE_RESULT" "$CACHE_REQ")
+            echo "| 💾 Warm Cache | $CACHE_DISPLAY | $CACHE_NOTE |"
+
+            # Security
+            SECURITY_DISPLAY=$(get_result_display "$SECURITY_RESULT" "Security" "Required")
+            SECURITY_NOTE=$(get_status_note "$SECURITY_RESULT" "Required")
+            echo "| 🔒 Security | $SECURITY_DISPLAY | $SECURITY_NOTE |"
+
+            # Code Quality
+            QUALITY_DISPLAY=$(get_result_display "$QUALITY_RESULT" "Code Quality" "Required")
+            QUALITY_NOTE=$(get_status_note "$QUALITY_RESULT" "Required")
+            echo "| 📊 Code Quality | $QUALITY_DISPLAY | $QUALITY_NOTE |"
+
+            # Pre-commit
+            PRECOMMIT_REQ="Skipped"
+            [[ "$PRECOMMIT_ENABLED" == "true" ]] && PRECOMMIT_REQ="Required"
+            PRECOMMIT_DISPLAY=$(get_result_display "$PRECOMMIT_RESULT" "Pre-commit" "$PRECOMMIT_REQ")
+            PRECOMMIT_NOTE=$(get_status_note "$PRECOMMIT_RESULT" "$PRECOMMIT_REQ")
+            echo "| 🪝 Pre-commit | $PRECOMMIT_DISPLAY | $PRECOMMIT_NOTE |"
+
+            # Test Suite
+            TESTS_REQ="Skipped"
+            [[ "$TESTS_ENABLED" == "true" ]] && TESTS_REQ="Required"
+            TESTS_DISPLAY=$(get_result_display "$TESTS_RESULT" "Test Suite" "$TESTS_REQ")
+            TESTS_NOTE=$(get_status_note "$TESTS_RESULT" "$TESTS_REQ")
+            echo "| 🧪 Test Suite | $TESTS_DISPLAY | $TESTS_NOTE |"
+
+            # Benchmarks (always optional)
+            BENCH_DISPLAY=$(get_result_display "$BENCH_RESULT" "Benchmarks" "Optional")
+            BENCH_NOTE=$(get_status_note "$BENCH_RESULT" "Optional ⚠️")
+            echo "| 🏃 Benchmarks | $BENCH_DISPLAY | $BENCH_NOTE |"
+
             echo ""
-            if [[ "${{ needs.benchmarks.result }}" == "failure" ]]; then
+
+            # Add explanatory notes
+            if [[ "$FAILURE_COUNT" -gt 0 ]]; then
+              echo "---"
+              echo ""
+              echo "### 💡 What happened?"
+              echo ""
+              echo "When a job fails, GoFortress cancels other running jobs to save CI resources."
+              echo "Jobs showing **cancelled** did not fail themselves - they were stopped because of the failure above."
+              echo ""
+              echo "**To fix:** Check the **Actual Failures** table above and fix the issues in that job."
+            elif [[ "$BENCH_RESULT" == "failure" ]]; then
               echo "⚠️ **Note**: Benchmarks failed but are currently non-blocking."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
