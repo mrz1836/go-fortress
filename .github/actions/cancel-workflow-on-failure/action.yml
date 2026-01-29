@@ -1,6 +1,13 @@
 # ------------------------------------------------------------------------------------
 #  Cancel Workflow On Failure (Composite Action) (GoFortress)
 #
+#  NOTE: This action is currently NOT IN USE. It was disabled because GitHub's
+#  cancel API overwrites the "failed" status with "cancelled" on the job that
+#  triggered it, making it impossible to identify which job actually failed.
+#
+#  The action is kept for potential future use in scenarios where the trade-off
+#  (faster cancellation vs clear failure visibility) is acceptable.
+#
 #  Purpose: Provide a reusable action that cancels the entire workflow run when
 #  a critical job fails. This prevents wasting CI resources on parallel jobs
 #  that will ultimately be invalidated by an earlier failure.
@@ -90,63 +97,6 @@ outputs:
 runs:
   using: "composite"
   steps:
-    # -------------------------------------------------------------------------
-    # Create and upload failure marker artifact BEFORE cancellation
-    # This allows status-check to distinguish FAILED from CANCELLED jobs
-    # -------------------------------------------------------------------------
-    - name: 📝 Create failure marker file
-      id: create-marker
-      shell: bash
-      env:
-        FAILED_JOB: ${{ inputs.failed-job }}
-        FAILED_STEP: ${{ inputs.failed-step }}
-        FAILURE_TOOL: ${{ inputs.failure-tool }}
-        FAILURE_SUMMARY: ${{ inputs.failure-summary }}
-        CANCEL_REASON: ${{ inputs.reason }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        GITHUB_JOB: ${{ github.job }}
-      run: |
-        # Generate URL-safe slug from job name for unique artifact naming
-        JOB_SLUG=$(echo "$GITHUB_JOB" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')
-        MARKER_FILE="failure-marker.json"
-        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-        # Create JSON with properly escaped values using jq
-        jq -n \
-          --arg job "$FAILED_JOB" \
-          --arg step "$FAILED_STEP" \
-          --arg tool "$FAILURE_TOOL" \
-          --arg summary "$FAILURE_SUMMARY" \
-          --arg reason "$CANCEL_REASON" \
-          --arg ts "$TIMESTAMP" \
-          --arg run_id "$GITHUB_RUN_ID" \
-          --arg github_job "$GITHUB_JOB" \
-          '{
-            version: "1.0",
-            failed_job: $job,
-            failed_step: $step,
-            failure_tool: $tool,
-            failure_summary: $summary,
-            reason: $reason,
-            timestamp: $ts,
-            workflow_run_id: $run_id,
-            github_job: $github_job
-          }' > "$MARKER_FILE"
-
-        echo "marker-file=$MARKER_FILE" >> "$GITHUB_OUTPUT"
-        echo "artifact-name=failure-marker-$JOB_SLUG" >> "$GITHUB_OUTPUT"
-
-        echo "📝 Created failure marker: $MARKER_FILE"
-        echo "   Artifact name: failure-marker-$JOB_SLUG"
-
-    - name: 📤 Upload failure marker artifact
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-      with:
-        name: ${{ steps.create-marker.outputs.artifact-name }}
-        path: ${{ steps.create-marker.outputs.marker-file }}
-        retention-days: 1
-        if-no-files-found: warn
-
     - name: 🚨 Cancel workflow run
       id: cancel
       shell: bash
