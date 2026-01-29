@@ -55,7 +55,7 @@ func Guard(input string, forbidden []string) (string, error) {
 	for _, f := range forbidden {
 		if strings.Contains(input, f) {
 			return "", fmt.Errorf("%w: contains %q", ErrBreachDetected, f)
-		}
+		} //nolint:gosec //bogus tag
 	}
 	return input, nil
 }
