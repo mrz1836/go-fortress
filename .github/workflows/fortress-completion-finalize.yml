@@ -242,12 +242,12 @@ jobs:
           echo "" >> final-report.md
 
       # --------------------------------------------------------------------
-      # Generate performance insights (collapsed)
+      # Generate Job Results Summary
       # --------------------------------------------------------------------
       - name: 🔧 Generate Job Results Summary
         id: job-results
         run: |
-          # Add fork PR specific information if this is a fork PR (visible, not collapsed)
+          # Add fork PR specific information if this is a fork PR (collapsed by default)
           if [[ "${{ env.INPUT_is-fork-pr }}" == "true" ]]; then
             {
               echo "<details>"
