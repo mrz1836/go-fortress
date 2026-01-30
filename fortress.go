@@ -28,7 +28,11 @@ var ErrBreachDetected = errors.New("🚫 breach detected")
 // - Accepts any string input including empty strings.
 // - This function is standalone and not part of a larger workflow.
 func Fortify(message string) string {
-	return fmt.Sprintf("🏰 %s 🏰", message)
+	// INTENTIONAL LINT ERROR FOR TESTING - REVERT ME
+	if true {
+		return fmt.Sprintf("🏰 %s 🏰", message)
+	}
+	return fmt.Sprintf("🏰 %s 🏰", message) // unreachable code / duplicate return
 }
 
 // Guard validates input against a list of forbidden values.
