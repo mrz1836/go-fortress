@@ -164,12 +164,15 @@ jobs:
             echo ""
 
             if [[ "$WORKFLOW_FAILED" == "true" ]]; then
-              echo "## Status: 🔴 FAILED"
+              echo "> [!CAUTION]"
+              echo "> ## 🔴 WORKFLOW FAILED"
+              echo ">"
+              echo "> **Failed Jobs:**"
+              echo -e "$FAILED_JOBS" | while IFS= read -r line; do echo "> $line"; done
               echo ""
-              echo "**Failed Jobs:**"
-              echo -e "$FAILED_JOBS"
             else
-              echo "## Status: 🟢 ALL CHECKS PASSED"
+              echo "> [!TIP]"
+              echo "> ## 🟢 ALL CHECKS PASSED"
             fi
             echo ""
             echo "| Job | Result |"
