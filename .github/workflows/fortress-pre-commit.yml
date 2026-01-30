@@ -690,6 +690,8 @@ jobs:
 
           if [ "${CHECKS_EXIT:-0}" -ne 0 ]; then
             echo "❌ Pre-commit checks failed with exit code: ${CHECKS_EXIT}"
+            # Emit GitHub annotation for visibility at top of summary
+            echo "::error title=Pre-commit Checks Failed::Code quality issues detected - formatting, linting, or other pre-commit checks failed"
             exit ${CHECKS_EXIT}
           fi
 
