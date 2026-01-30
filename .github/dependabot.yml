@@ -100,9 +100,8 @@ updates:
     directory: "/"
     target-branch: "master"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:15"
+      interval: "daily"
+      time: "08:15"
       timezone: "America/New_York"
     allow:
       - dependency-type: "direct"
