@@ -188,6 +188,8 @@ jobs:
             echo ""
             echo "**Duration:** ${TIMING_total_minutes:-0}m ${TIMING_total_seconds:-0}s"
             echo ""
+            echo "**Generated:** $SUMMARY_TIME"
+            echo ""
 
             # =================================================================
             # DETAILED SECTIONS (Collapsed by default)
