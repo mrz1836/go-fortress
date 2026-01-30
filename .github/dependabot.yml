@@ -2,9 +2,8 @@
 # Dependabot Configuration
 #
 # Purpose:
-#   • Keep Go modules, GitHub Actions and DevContainer images/features
-#     base images up‑to‑date with zero‑day security patches and semantic‑version
-#     upgrades.
+#   • Keep Go modules, GitHub Actions, and DevContainer base images/features
+#     up-to-date with zero-day security patches and semantic-version upgrades.
 #   • Reduce attack surface by limiting outdated dependencies.
 #   • Minimise PR noise via smart grouping and sane pull‑request limits.
 #
