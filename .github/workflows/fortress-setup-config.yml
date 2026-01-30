@@ -592,14 +592,14 @@ jobs:
           fi
 
           # =================================================================
-          # FULL CONFIGURATION DETAILS (Collapsed)
+          # INDIVIDUAL COLLAPSIBLE SECTIONS (Each one collapsed by default)
           # =================================================================
-          echo "<details>" >> $GITHUB_STEP_SUMMARY
-          echo "<summary>📋 Full Configuration Details</summary>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Workflow Trigger Information
-          echo "### 🎯 Workflow Trigger" >> $GITHUB_STEP_SUMMARY
+          # Workflow Trigger Information (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🎯 Workflow Trigger</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Trigger Details" >> $GITHUB_STEP_SUMMARY
           echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Trigger Type** | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
@@ -612,17 +612,21 @@ jobs:
 
           # Fork PR Status (if applicable)
           if [[ "${{ steps.fork-detection.outputs.is-fork-pr }}" == "true" ]]; then
-            echo "### 🔐 Fork PR Security Status" >> $GITHUB_STEP_SUMMARY
-            echo "**Security Mode:** \`${{ steps.fork-detection.outputs.fork-security-mode }}\` (restricted for security)" >> $GITHUB_STEP_SUMMARY
+            echo "#### 🔐 Fork PR Security" >> $GITHUB_STEP_SUMMARY
+            echo "**Security Mode:** \`${{ steps.fork-detection.outputs.fork-security-mode }}\`" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Jobs That Will Run:** Setup, MAGE-X Testing, Cache Warming, Code Quality, Pre-Commit, Benchmarks" >> $GITHUB_STEP_SUMMARY
+            echo "**Runs:** Setup, MAGE-X, Cache, Code Quality, Pre-Commit, Benchmarks" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Jobs Skipped (Require Secrets):** Security Scans, Test Suite with Coverage, Release" >> $GITHUB_STEP_SUMMARY
+            echo "**Skipped:** Security Scans, Test Suite with Coverage, Release" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Configuration Statistics
-          echo "### 📈 Configuration Overview" >> $GITHUB_STEP_SUMMARY
+          # Configuration Statistics (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>📈 Configuration Overview</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Workflow Start Time**: ${{ steps.timer.outputs.start-time }}" >> $GITHUB_STEP_SUMMARY
 
           # Configuration File Discovery
@@ -644,9 +648,13 @@ jobs:
           echo "- **Unique Go Versions**: $(echo "$UNIQUE_GO_VERSIONS" | jq 'length')" >> $GITHUB_STEP_SUMMARY
           echo "- **Runner Operating Systems**: $([ "${{ env.PRIMARY_RUNNER }}" == "${{ env.SECONDARY_RUNNER }}" ] && echo "1" || echo "2")" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Core Configuration
-          echo "### 🛠 Core CI Configuration" >> $GITHUB_STEP_SUMMARY
+          # Core Configuration (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🛠 Core CI Configuration</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Setting | Value | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|-------|-------------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Primary Runner** | \`${{ env.PRIMARY_RUNNER }}\` | Main OS for CI jobs |" >> $GITHUB_STEP_SUMMARY
@@ -660,6 +668,8 @@ jobs:
           echo "| **Multi-Module Testing** | $([ \"${{ env.ENABLE_MULTI_MODULE_TESTING }}\" == \"true\" ] && echo \"✅ Enabled\" || echo \"❌ Disabled\") | Auto module discovery |" >> $GITHUB_STEP_SUMMARY
           echo "| **Multi-Module Workspace** | $([ \"${{ steps.detect-gowork.outputs.gowork-exists }}\" == \"true\" ] && echo \"✅ go.work found\" || echo \"⚪ No go.work\") | Workspace support |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
       # --------------------------------------------------------------------
       # Build the configuration summary (Part 2: Test Matrix and Features)
       # --------------------------------------------------------------------
@@ -669,11 +679,11 @@ jobs:
           ENV_JSON: ${{ inputs.env-json }}
         run: |
           MATRIX_JSON='${{ steps.matrix.outputs.matrix }}'
-
-          # Test Matrix (inside details block from Part 1)
-          echo "### 🧪 Generated Test Matrix" >> $GITHUB_STEP_SUMMARY
           MATRIX_COUNT=$(echo "$MATRIX_JSON" | jq '.include | length')
-          echo "**Total test configurations**: $MATRIX_COUNT" >> $GITHUB_STEP_SUMMARY
+
+          # Test Matrix (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🧪 Generated Test Matrix ($MATRIX_COUNT configurations)</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| # | OS | Go Version | Configuration Name |" >> $GITHUB_STEP_SUMMARY
           echo "|---|----|-----------|--------------------|" >> $GITHUB_STEP_SUMMARY
@@ -681,9 +691,13 @@ jobs:
           echo "$MATRIX_JSON" | jq -r '.include | to_entries | .[] | "| \(.key + 1) | \(.value.os) | \(.value["go-version"]) | \(.value.name) |"' >> $GITHUB_STEP_SUMMARY
 
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Feature Flags
-          echo "### 🚀 Feature Flags" >> $GITHUB_STEP_SUMMARY
+          # Feature Flags (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🚀 Feature Flags</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Feature | Status | Impact |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Benchmarks** | $([ "${{ env.ENABLE_BENCHMARKS }}" == "true" ] && echo "✅" || echo "❌") | $([ "${{ env.ENABLE_BENCHMARKS }}" == "true" ] && echo "Mode: **${{ env.BENCHMARK_MODE }}**" || echo "Skipped") |" >> $GITHUB_STEP_SUMMARY
@@ -702,6 +716,8 @@ jobs:
           echo "| **Redis Service** | $([ "${{ steps.redis-config.outputs.redis-enabled }}" == "true" ] && echo "✅" || echo "❌") | $([ "${{ steps.redis-config.outputs.redis-enabled }}" == "true" ] && echo "Redis ${{ env.REDIS_VERSION }}" || echo "Not available") |" >> $GITHUB_STEP_SUMMARY
           echo "| **Go Docs** | $([ "${{ env.ENABLE_GODOCS_PUBLISHING }}" == "true" ] && echo "✅" || echo "❌") | $([ "${{ env.ENABLE_GODOCS_PUBLISHING }}" == "true" ] && echo "Publish to pkg.go.dev" || echo "Skipped") |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
       # --------------------------------------------------------------------
       # Build the configuration summary (Part 3: Benchmark and Coverage Config)
       # --------------------------------------------------------------------
@@ -710,19 +726,25 @@ jobs:
         env:
           ENV_JSON: ${{ inputs.env-json }}
         run: |
-          # Benchmark Configuration (only show if benchmarks are enabled)
+          # Benchmark Configuration (collapsed, only if enabled)
           if [[ "${{ env.ENABLE_BENCHMARKS }}" == "true" ]]; then
-            echo "### 🏃 Benchmark Configuration" >> $GITHUB_STEP_SUMMARY
+            echo "<details>" >> $GITHUB_STEP_SUMMARY
+            echo "<summary>🏃 Benchmark Configuration</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
             echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
             echo "| **Mode** | \`${{ env.BENCHMARK_MODE }}\` ($(case "${{ env.BENCHMARK_MODE }}" in quick) echo "50ms" ;; full) echo "10s" ;; *) echo "100ms" ;; esac)) |" >> $GITHUB_STEP_SUMMARY
             echo "| **Timeout** | ${{ env.BENCHMARK_TIMEOUT }} minutes |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Coverage Configuration (only show if coverage is enabled)
+          # Coverage Configuration (collapsed, only if enabled)
           if [[ "${{ env.ENABLE_CODE_COVERAGE }}" == "true" ]]; then
-            echo "### 📊 Coverage System" >> $GITHUB_STEP_SUMMARY
+            echo "<details>" >> $GITHUB_STEP_SUMMARY
+            echo "<summary>📊 Coverage System</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
             echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
 
@@ -735,15 +757,21 @@ jobs:
               echo "| **PR Comments** | $([ "${{ env.GO_COVERAGE_POST_COMMENTS }}" == "true" ] && echo "✅" || echo "❌") |" >> $GITHUB_STEP_SUMMARY
             fi
             echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Redis Service Configuration (only show if redis is enabled)
+          # Redis Service Configuration (collapsed, only if enabled)
           if [[ "${{ steps.redis-config.outputs.redis-enabled }}" == "true" ]]; then
-            echo "### 🗄️ Redis Service" >> $GITHUB_STEP_SUMMARY
+            echo "<details>" >> $GITHUB_STEP_SUMMARY
+            echo "<summary>🗄️ Redis Service</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
             echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
             echo "| **Version** | ${{ steps.redis-config.outputs.redis-version }} |" >> $GITHUB_STEP_SUMMARY
             echo "| **Connection** | ${{ steps.redis-config.outputs.redis-host }}:${{ steps.redis-config.outputs.redis-port }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
       # --------------------------------------------------------------------
@@ -754,9 +782,11 @@ jobs:
         env:
           ENV_JSON: ${{ inputs.env-json }}
         run: |
-          # Pre-Commit System Configuration (only show if pre-commit is enabled)
+          # Pre-Commit System Configuration (collapsed, only if enabled)
           if [[ "${{ env.ENABLE_GO_PRE_COMMIT }}" == "true" ]]; then
-            echo "### 🪝 Pre-Commit System" >> $GITHUB_STEP_SUMMARY
+            echo "<details>" >> $GITHUB_STEP_SUMMARY
+            echo "<summary>🪝 Pre-Commit System</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
             echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
             echo "| **System** | go-pre-commit (17x faster) |" >> $GITHUB_STEP_SUMMARY
@@ -769,23 +799,33 @@ jobs:
             echo "| **Exclude Patterns** | \`${{ env.GO_PRE_COMMIT_EXCLUDE_PATTERNS }}\` | Patterns excluded from pre-commit checks |" >> $GITHUB_STEP_SUMMARY
             echo "| **Tools** | golangci-lint \`${{ env.GO_PRE_COMMIT_GOLANGCI_LINT_VERSION }}\`, gofumpt \`${{ env.GO_PRE_COMMIT_FUMPT_VERSION }}\` |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # Build Requirements
-          echo "### 🔨 Build Requirements" >> $GITHUB_STEP_SUMMARY
+          # Build Requirements (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🔨 Build Requirements</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Requirement | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| **.mage.yaml** | $([ "${{ steps.config.outputs.magefile-exists }}" == "true" ] && echo "✅ Found" || echo "⚠️ Not Found") (Required: $([ "${{ env.MAGEFILE_REQUIRED }}" == "true" ] && echo "Yes" || echo "No")) |" >> $GITHUB_STEP_SUMMARY
           echo "| **Verbose Output** | $([ "${{ env.ENABLE_VERBOSE_TEST_OUTPUT }}" == "true" ] && echo "✅" || echo "❌") |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Security Tools Configuration
-          echo "### 🔒 Security Tools" >> $GITHUB_STEP_SUMMARY
+          # Security Tools Configuration (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🔒 Security Tools</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Tool | Version |" >> $GITHUB_STEP_SUMMARY
           echo "|------|---------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Gitleaks** | ${{ env.GITLEAKS_VERSION }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Govulncheck** | ${{ env.GOVULNCHECK_VERSION }} |" >> $GITHUB_STEP_SUMMARY
           echo "| **Nancy** | ${{ env.NANCY_VERSION }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
       # --------------------------------------------------------------------
       # Build the configuration summary (Part 5: Close details and footer)
@@ -797,24 +837,32 @@ jobs:
         run: |
           ENV_COUNT=$(echo "$ENV_JSON" | jq 'keys | length')
 
-          # Authentication
-          echo "### 🔑 Authentication" >> $GITHUB_STEP_SUMMARY
+          # Authentication (collapsed)
+          echo "<details>" >> $GITHUB_STEP_SUMMARY
+          echo "<summary>🔑 Authentication</summary>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Setting | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| **Token** | $([ "${{ env.PREFERRED_GITHUB_TOKEN }}" == "GH_PAT_TOKEN" ] && echo "PAT (5000/hr)" || echo "GITHUB_TOKEN (1000/hr)") |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "</details>" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Custom Project Variables
+          # Custom Project Variables (collapsed, only if present)
           PROJECT_VARS=$(echo "$ENV_JSON" | jq -r 'to_entries | map(select(.key | startswith("CUSTOM_"))) | length')
           if [ "$PROJECT_VARS" -gt 0 ]; then
-            echo "### 🎨 Custom Variables ($PROJECT_VARS)" >> $GITHUB_STEP_SUMMARY
+            echo "<details>" >> $GITHUB_STEP_SUMMARY
+            echo "<summary>🎨 Custom Variables ($PROJECT_VARS)</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
             echo "| Variable | Value |" >> $GITHUB_STEP_SUMMARY
             echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
             echo "$ENV_JSON" | jq -r 'to_entries | map(select(.key | startswith("CUSTOM_"))) | sort_by(.key) | .[] | "| \(.key) | `\(.value)` |"' >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
-          # All Environment Variables (nested details)
+          # All Environment Variables (collapsed)
           echo "<details>" >> $GITHUB_STEP_SUMMARY
           echo "<summary>🔍 All $ENV_COUNT Environment Variables</summary>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -822,10 +870,6 @@ jobs:
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "$ENV_JSON" | jq -r 'to_entries | sort_by(.key) | .[] | "| \(.key) | `\(.value)` |"' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "</details>" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          # Close the main details block
           echo "</details>" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
