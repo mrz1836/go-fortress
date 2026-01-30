@@ -28,8 +28,6 @@ var ErrBreachDetected = errors.New("🚫 breach detected")
 // - Accepts any string input including empty strings.
 // - This function is standalone and not part of a larger workflow.
 func Fortify(message string) string {
-	// INTENTIONAL ERROR FOR TESTING - REVERT ME
-	var unusedVariable string  // this is declared but never used - Go compiler error
 	return fmt.Sprintf("🏰 %s 🏰", message)
 }
 
