@@ -632,6 +632,39 @@ CODECOV_TOKEN_REQUIRED=true
 </details>
 
 <details>
+<summary><strong><code>Coverage Threshold Enforcement</code></strong></summary>
+<br/>
+
+GoFortress enforces minimum coverage requirements in CI. Builds fail if coverage drops below the configured threshold.
+
+```bash
+# In .env.base or .env.custom
+GO_COVERAGE_THRESHOLD=65.0  # Minimum coverage percentage (0-100)
+```
+
+**How it works:**
+1. Tests generate coverage data with configured exclusions applied
+2. After coverage processing, the threshold is checked
+3. If coverage < threshold, the build fails with actionable guidance
+
+**Coverage Exclusions** (applied during test generation):
+```bash
+GO_COVERAGE_EXCLUDE_PATHS=test/,vendor/,testdata/  # Excluded directories
+GO_COVERAGE_EXCLUDE_FILES=*_test.go,*.pb.go        # Excluded file patterns
+GO_COVERAGE_EXCLUDE_TESTS=true                      # Exclude test files
+GO_COVERAGE_EXCLUDE_GENERATED=true                  # Exclude generated code
+```
+
+**Disable threshold enforcement:**
+```bash
+GO_COVERAGE_THRESHOLD=0  # Set to 0 to disable
+```
+
+> **Note:** Exclusions are applied when generating coverage, not when checking the threshold. The threshold check uses the already-filtered coverage data.
+
+</details>
+
+<details>
 <summary><strong><code>Benchmark Modes</code></strong></summary>
 <br/>
 
