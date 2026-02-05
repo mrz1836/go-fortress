@@ -110,10 +110,6 @@ jobs:
     timeout-minutes: 30 # Prevent hung tests
     permissions:
       contents: read # Read repository content for testing
-    env:
-      # Fix for golang/go#75031: Ensure complete toolchain with covdata tool
-      # Auto-downloaded toolchains may lack auxiliary tools like covdata
-      GOTOOLCHAIN: local
     strategy:
       fail-fast: true
       matrix: ${{ fromJSON(inputs.test-matrix) }}
