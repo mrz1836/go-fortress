@@ -117,6 +117,8 @@ jobs:
   load-env:
     name: 🌍 Load Environment (Base Repo)
     runs-on: ubuntu-latest
+    # Early exit: Skip entire workflow for same-repo PRs (handled by main workflow)
+    if: github.event.pull_request.head.repo.full_name != github.repository
     # No write perms here
     permissions:
       contents: read
