@@ -3,7 +3,7 @@
 #
 #  Purpose: Automate labeling, assignment, and welcoming of pull requests for forked PRs.
 #
-#  Configuration: All settings are loaded from .env.base and .env.custom files for
+#  Configuration: All settings are loaded from modular .github/env/ files for
 #  centralized management across all workflows.
 #
 #  Triggers: Pull request events (opened, reopened, ready for review, closed, synchronize)
@@ -108,7 +108,7 @@ concurrency:
 # --------------------------------------------------------------------
 # Environment Variables
 # --------------------------------------------------------------------
-# Note: Configuration variables are loaded from .env.base and .env.custom files
+# Note: Configuration variables are loaded from modular .github/env/ files
 
 jobs:
   # ------------------------------------------------------------
@@ -164,8 +164,7 @@ jobs:
           ref: ${{ github.base_ref }}
           fetch-depth: 1
           sparse-checkout: |
-            .github/.env.base
-            .github/.env.custom
+            .github/env
             .github/actions/load-env
 
       - name: 🌍 Load environment variables

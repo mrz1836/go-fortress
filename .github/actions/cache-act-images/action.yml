@@ -8,7 +8,7 @@
 #  Features:
 #    - Caches both act-latest and act-22.04 images together
 #    - Gzip compression for ~60% storage reduction
-#    - Version-pinned cache keys tied to act version from .env.base
+#    - Version-pinned cache keys tied to act version from env config
 #    - Cross-platform support via runner.os
 #    - Performance tracking and metrics
 #    - Automatic fallback to Docker Hub on cache miss
@@ -27,7 +27,7 @@ description: "Cache act Docker images for faster Guardian scenario execution wit
 
 inputs:
   act-version:
-    description: "Act version for cache key (e.g., v0.2.84) - sourced from GUARDIAN_ACT_VERSION in .env.base"
+    description: "Act version for cache key (e.g., v0.2.84) - sourced from GUARDIAN_ACT_VERSION in env config"
     required: true
   cache-mode:
     description: "Cache operation mode: restore, save, restore-save"
@@ -84,7 +84,7 @@ runs:
         # Define images to cache
         IMAGES="catthehacker/ubuntu:act-latest,catthehacker/ubuntu:act-22.04"
 
-        # Create cache key with act version for invalidation (sourced from .env.base)
+        # Create cache key with act version for invalidation
         CACHE_KEY="act-images-${{ runner.os }}-${{ inputs.act-version }}"
 
         # Define cache paths

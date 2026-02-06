@@ -95,8 +95,6 @@ jobs:
         with:
           sparse-checkout: |
             .github/env
-            .github/.env.base
-            .github/.env.custom
             .github/actions/load-env
 
       # --------------------------------------------------------------------

@@ -8,7 +8,7 @@
 #  work correctly by executing them locally via act.
 #
 #  Jobs:
-#    - load-env: Load environment configuration from .env.base/.env.custom
+#    - load-env: Load environment configuration from .github/env/
 #    - static: Fast static validation (< 2s, no Docker required)
 #    - guardian-scenarios: Full scenario execution with Docker + Redis
 #
@@ -41,7 +41,6 @@ on:
       - ".github/**"
       - "guardian/**"
       - "magefiles/**"
-      - ".env.base"
       - "go.mod"
       - "go.sum"
 
@@ -92,8 +91,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           sparse-checkout: |
-            .github/.env.base
-            .github/.env.custom
+            .github/env
             .github/actions/load-env
 
       - name: Load environment variables
@@ -373,7 +371,7 @@ jobs:
 
             # Check if Guardian is disabled
             if [[ "${{ needs.load-env.outputs.guardian-enabled }}" != "true" ]]; then
-              echo "> ⚠️ **Note**: Guardian is disabled. Set \`ENABLE_CI_GUARDIAN=true\` in \`.github/.env.custom\` to enable."
+              echo "> ⚠️ **Note**: Guardian is disabled. Set \`ENABLE_CI_GUARDIAN=true\` in \`.github/env/90-project.env\` to enable."
               echo ""
             fi
           } >> "$GITHUB_STEP_SUMMARY"
