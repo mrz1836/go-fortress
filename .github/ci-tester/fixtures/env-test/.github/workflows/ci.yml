@@ -15,12 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate env schema
+      - name: Validate modular env system
         run: |
-          if [ -f .env.base ]; then
-            echo "env schema valid"
-            echo "schema pass"
+          if [ -d .github/env ] && [ -f .github/env/load-env.sh ]; then
+            echo "Modular env system found"
+            source .github/env/load-env.sh
+            if [ -n "$APP_NAME" ]; then
+              echo "env schema valid"
+              echo "schema pass"
+            else
+              echo "APP_NAME not set after loading env"
+              exit 1
+            fi
           else
-            echo "Missing .env.base"
+            echo "Missing modular env system (.github/env/)"
             exit 1
           fi

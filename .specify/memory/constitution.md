@@ -67,8 +67,9 @@ All CI/CD behavior MUST be controllable via environment configuration files with
 modifying workflow YAML. This enables zero-touch customization across projects.
 
 **Configuration Hierarchy:**
-- `.env.base` contains 225+ default parameters (never project-specific)
-- `.env.custom` contains project-specific overrides (takes precedence)
+- `.github/env/` contains modular env files loaded in sorted order
+- `00-core.env` through `20-*.env` contain default parameters
+- `90-project.env` contains project-specific overrides (takes precedence)
 - Feature flags enable/disable any component individually
 - Runtime provider switching (internal vs external coverage, Redis modes)
 
@@ -192,7 +193,7 @@ The fortress comprises 18 specialized workflows orchestrated by `fortress.yml`:
 
 ```
 fortress.yml (Main Orchestrator)
-├── load-env ─────────► Load .env.base + .env.custom
+├── load-env ─────────► Load modular env files from .github/env/
 ├── setup ────────────► Generate matrices, detect forks
 ├── test-magex ───────► Verify MAGE-X installation
 ├── warm-cache ───────► Pre-warm Go module caches

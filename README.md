@@ -281,8 +281,8 @@ With 225+ knobs to turn and switches to flip, you're the architect of your own C
   <tbody>
     <tr>
       <td><strong>Environment System</strong></td>
-      <td><code>.env.base</code> + <code>.env.custom</code></td>
-      <td>225+ parameters including Redis service configuration</td>
+      <td><a href=".github/env/README.md">Modular env files</a></td>
+      <td>225+ parameters in domain-specific files</td>
     </tr>
     <tr>
       <td><strong>Test Matrices</strong></td>
@@ -358,7 +358,7 @@ Witness the symphony of 18 specialized workflows performing in perfect harmony. 
 ```
 fortress.yml (Main Orchestrator v1.6.0)
 │
-├── load-env ─────────────────────► Loads .env.base + .env.custom
+├── load-env ─────────────────────► Loads modular env files (.github/env/)
 │
 ├── setup ────────────────────────► fortress-setup-config.yml
 │   ├── Fork PR detection          • Generates test matrices
@@ -435,7 +435,7 @@ go-pre-commit install
 
 # Create your own fortress
 cp -r .github/workflows/fortress-* your-project/.github/workflows/
-cp .github/.env.base your-project/.github/
+cp -r .github/env your-project/.github/
 ```
 
 <br/>
@@ -475,7 +475,7 @@ cp .github/.env.base your-project/.github/
 * **Optional Release Broadcasts** to your community via [Slack](https://slack.com), [Discord](https://discord.com), or [Twitter](https://twitter.com) – plug in your webhook.
 * **AI Playbook** – machine‑readable guidelines in [tech conventions](.github/tech-conventions/ai-compliance.md)
 * **Go-Pre-commit System** - [High-performance Go-native pre-commit hooks](https://github.com/mrz1836/go-pre-commit) with 17x faster execution—the same quality checks run locally and in CI, eliminating "works on my machine" friction.
-* **Zero Python Dependencies** - Pure Go implementation with environment-based configuration via [.env.base](.github/.env.base).
+* **Zero Python Dependencies** - Pure Go implementation with [modular environment configuration](.github/env/README.md).
 * **DevContainers for Instant Onboarding** – Launch a ready-to-code environment in seconds with [VS Code DevContainers](https://containers.dev/) and the included [.devcontainer.json](.devcontainer.json) config.
 * **Fork PR Security** – Automatic detection routes jobs safely, skipping secret-dependent scans while running quality checks.
 
@@ -515,7 +515,7 @@ go install github.com/mrz1836/go-pre-commit/cmd/go-pre-commit@latest
 go-pre-commit install
 ```
 
-The system is configured via [.env.base](.github/.env.base) and can be customized using also using [.env.custom](.github/.env.custom) and provides 17x faster execution than traditional Python-based pre-commit hooks. See the [complete documentation](http://github.com/mrz1836/go-pre-commit) for details.
+The system is configured via the [modular env system](.github/env/README.md) and provides 17x faster execution than traditional Python-based pre-commit hooks. See the [complete documentation](http://github.com/mrz1836/go-pre-commit) for details.
 
 </details>
 
@@ -526,13 +526,15 @@ The system is configured via [.env.base](.github/.env.base) and can be customize
 
 ### 🎛️ The Workflow Control Center
 
-All GitHub Actions workflows in this repository are powered by a single configuration files – your one-stop shop for tweaking CI/CD behavior without touching a single YAML file! 🎯
+All GitHub Actions workflows in this repository are powered by a **[modular environment configuration system](.github/env/README.md)** – your one-stop shop for tweaking CI/CD behavior without touching a single YAML file! 🎯
 
-**Configuration Files:**
-- **[.env.base](.github/.env.base)** – Default configuration that works for most Go projects
-- **[.env.custom](.github/.env.custom)** – Optional project-specific overrides
+**Configuration Files:** (in `.github/env/`)
+- `00-core.env` – Go versions, runners, feature flags
+- `10-*.env` – Tool configs (coverage, pre-commit, security, mage-x)
+- `20-*.env` – Services & workflows (Redis, Guardian, automation)
+- `90-project.env` – Project-specific overrides
 
-This magical file controls everything from:
+These files control everything from:
 - **⚙️ Go version matrix** (test on multiple versions or just one)
 - **🏃 Runner selection** (Ubuntu or macOS, your wallet decides)
 - **🔬 Feature toggles** (coverage, fuzzing, linting, race detection, benchmarks)
@@ -606,13 +608,13 @@ Fork contributors see a clear message in the workflow summary explaining which j
 <summary><strong><code>Dual Coverage Providers</code></strong></summary>
 <br/>
 
-Switch between coverage providers via `.env.custom`:
+Switch between coverage providers via `90-project.env`:
 
 ```bash
 # Option 1: Internal go-coverage (default)
 GO_COVERAGE_PROVIDER=internal
 
-# Option 2: External Codecov
+# Option 2: External Codecov (set in .github/env/90-project.env)
 GO_COVERAGE_PROVIDER=codecov
 CODECOV_TOKEN_REQUIRED=true
 ```
@@ -638,7 +640,7 @@ CODECOV_TOKEN_REQUIRED=true
 GoFortress enforces minimum coverage requirements in CI. Builds fail if coverage drops below the configured threshold.
 
 ```bash
-# In .env.base or .env.custom
+# In .github/env/10-coverage.env or 90-project.env
 GO_COVERAGE_THRESHOLD=65.0  # Minimum coverage percentage (0-100)
 ```
 
@@ -677,7 +679,7 @@ Three benchmark execution modes via `BENCHMARK_MODE`:
 | `full` | 5s | Comprehensive analysis |
 
 ```bash
-# In .env.custom
+# In .github/env/00-core.env or 90-project.env
 BENCHMARK_MODE=quick  # Fast CI
 BENCHMARK_MODE=full   # Detailed benchmarks
 ```
@@ -693,7 +695,7 @@ Benchmarks are **non-blocking** — failures won't fail the pipeline. Results in
 Optional Redis service containers for tests and benchmarks:
 
 ```bash
-# In .env.custom
+# In .github/env/20-redis.env or 90-project.env
 REDIS_SERVICE_MODE=auto    # Auto-detect from go.mod
 REDIS_SERVICE_MODE=always  # Always start Redis
 REDIS_SERVICE_MODE=never   # Never start Redis (default)
@@ -724,7 +726,7 @@ REDIS_HEALTH_CHECK_TIMEOUT=5
 Enable `go.work` workspace testing for monorepos:
 
 ```bash
-# In .env.custom
+# In .github/env/00-core.env or 90-project.env
 ENABLE_MULTI_MODULE_TESTING=true
 GO_SUM_FILE=go.sum  # Or path to specific module
 ```

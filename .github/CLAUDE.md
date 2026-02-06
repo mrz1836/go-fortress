@@ -20,9 +20,9 @@ GoFortress orchestrates **16+ specialized workflows** that work in concert:
 | **Reporting** | `fortress-completion-*.yml` (3 files) | Statistics, summaries, artifacts |
 
 ### Configuration System
-- **Base Config**: `.env.base` - 390+ parameters for complete control
-- **Custom Overrides**: `.env.custom` - Project-specific settings (e.g., coverage provider)
-- **Dynamic Loading**: `load-env` action merges configurations intelligently
+- **Modular Env Files**: `.github/env/` - 225+ parameters in domain-specific files
+- **Project Overrides**: `90-project.env` - Project-specific settings (e.g., coverage provider)
+- **Dynamic Loading**: `load-env.sh` loads all env files in sorted order
 
 ## 🚀 Integrated Pure Go Tools
 
@@ -101,9 +101,9 @@ REDIS_TRUST_SERVICE_HEALTH=true
 ```
 
 ### Custom Configuration Example
-`.env.custom` overrides for specific needs:
+`90-project.env` overrides for specific needs:
 ```bash
-# Use Codecov instead of internal coverage
+# Use Codecov instead of internal coverage (in .github/env/90-project.env)
 GO_COVERAGE_PROVIDER=codecov
 CODECOV_TOKEN_REQUIRED=true
 
@@ -114,7 +114,7 @@ GO_COVERAGE_EXCLUDE_PATHS=test/,vendor/,examples/
 ## 🎯 Workflow Orchestration
 
 ### Execution Flow
-1. **Load Environment** (3s) - Parse .env.base + .env.custom
+1. **Load Environment** (3s) - Load modular env files from .github/env/
 2. **Setup Config** (4s) - Generate test matrices
 3. **MAGE-X Verification** (6s) - Ensure build system ready
 4. **Cache Warming** (17s) - Parallel Go module caching
@@ -138,11 +138,11 @@ GO_COVERAGE_EXCLUDE_PATHS=test/,vendor/,examples/
 
 ### Common Issues
 1. **Coverage Provider Switching**
-   - Check `.env.custom` for `GO_COVERAGE_PROVIDER`
+   - Check `90-project.env` for `GO_COVERAGE_PROVIDER`
    - Ensure `CODECOV_TOKEN` secret is set if using Codecov
 
 2. **Test Timeouts**
-   - Adjust `TEST_TIMEOUT` variables in `.env.base`
+   - Adjust `TEST_TIMEOUT` variables in `00-core.env`
    - Race+Coverage tests need more time (`TEST_TIMEOUT_RACE_COVER=30m`)
 
 3. **Cache Misses**
@@ -168,7 +168,7 @@ GO_COVERAGE_EXCLUDE_PATHS=test/,vendor/,examples/
 
 ### Quick Checklist for Claude
 1. ✅ **Study `AGENTS.md`** - All conventions originate here
-2. ✅ **Respect Configuration Hierarchy** - `.env.custom` overrides `.env.base`
+2. ✅ **Respect Configuration Hierarchy** - Later env files override earlier ones
 3. ✅ **Use MAGE-X Commands** - Never manually run go build/test
 4. ✅ **Follow Branch Standards** - They trigger auto-labeling
 5. ✅ **Never Tag Releases** - Use `magex version:bump` instead

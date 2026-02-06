@@ -50,3 +50,6 @@ node_modules/
 
 # MageX build files
 .mage-x/
+
+# Local environment overrides
+.github/env/99-local.env

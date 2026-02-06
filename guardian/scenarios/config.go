@@ -25,7 +25,7 @@ func registerConfigScenarios(r *Registry) {
 	r.Register(&Scenario{
 		ID:          "ENV-001",
 		Category:    CategoryConfig,
-		Description: ".env.base schema validation (types, required fields, naming conventions)",
+		Description: "modular env schema validation (types, required fields, naming conventions)",
 		FixturePath: ".github/ci-tester/fixtures/env-test",
 		Workflow:    "ci.yml",
 		Expected: ExpectedResult{
