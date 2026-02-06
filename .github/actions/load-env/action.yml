@@ -58,7 +58,26 @@ runs:
       run: |
         echo "📋 Loading environment configuration..."
 
-        # Function to parse .env file to JSON
+        # Try new modular env loader first
+        LOADER_SCRIPT=".github/env/load-env.sh"
+        USE_NEW_LOADER=false
+
+        if [[ -f "$LOADER_SCRIPT" ]]; then
+          echo "🔄 Attempting to use new modular env loader..."
+
+          # Source the loader script
+          if source "$LOADER_SCRIPT" --verbose 2>&1; then
+            USE_NEW_LOADER=true
+            echo "✅ Successfully loaded environment using modular loader"
+          else
+            echo "⚠️  Modular loader failed, falling back to .env.base"
+            USE_NEW_LOADER=false
+          fi
+        else
+          echo "ℹ️  Modular loader not found, using legacy .env.base method"
+        fi
+
+        # Function to parse .env file to JSON (legacy fallback)
         parse_env_file() {
           local file="$1"
           if [[ -f "$file" ]]; then
@@ -121,36 +140,55 @@ runs:
         BASE_JSON="{}"
         CUSTOM_JSON="{}"
 
-        # 1. Load base configuration (required)
-        if [[ -f ".github/.env.base" ]]; then
-          echo "📂 Loading base configuration from .env.base..."
-          BASE_JSON=$(parse_env_file ".github/.env.base")
-          BASE_COUNT=$(echo "$BASE_JSON" | jq 'keys | length')
-          echo "✅ Loaded $BASE_COUNT base configuration variables"
+        if [[ "$USE_NEW_LOADER" == "true" ]]; then
+          # New loader: variables are already in the environment
+          # Extract them to JSON for workflow compatibility
+          echo "📦 Extracting environment variables to JSON..."
 
-          # Validate base configuration
-          validate_env_vars "$BASE_JSON" ".env.base"
+          # Get all exported variables and convert to JSON
+          ENV_JSON=$(env | grep -E '^[A-Z_][A-Z0-9_]*=' | jq -R 'split("=") | {(.[0]): (.[1:] | join("="))}' | jq -s 'add')
+
+          TOTAL_COUNT=$(echo "$ENV_JSON" | jq 'keys | length')
+          echo "✅ Extracted $TOTAL_COUNT variables from modular loader"
+
+          # Set counts for compatibility
+          BASE_COUNT=$TOTAL_COUNT
+          CUSTOM_COUNT=0
+
         else
-          echo "❌ ERROR: Required .env.base file not found!" >&2
-          exit 1
+          # Legacy method: parse .env.base and .env.custom files
+
+          # 1. Load base configuration (required)
+          if [[ -f ".github/.env.base" ]]; then
+            echo "📂 Loading base configuration from .env.base..."
+            BASE_JSON=$(parse_env_file ".github/.env.base")
+            BASE_COUNT=$(echo "$BASE_JSON" | jq 'keys | length')
+            echo "✅ Loaded $BASE_COUNT base configuration variables"
+
+            # Validate base configuration
+            validate_env_vars "$BASE_JSON" ".env.base"
+          else
+            echo "❌ ERROR: Required .env.base file not found!" >&2
+            exit 1
+          fi
+
+          # 2. Load custom overrides (optional)
+          if [[ -f ".github/.env.custom" ]]; then
+            echo "🎨 Loading custom configuration from .env.custom..."
+            CUSTOM_JSON=$(parse_env_file ".github/.env.custom")
+            CUSTOM_COUNT=$(echo "$CUSTOM_JSON" | jq 'keys | length')
+            echo "✅ Loaded $CUSTOM_COUNT custom override variables"
+
+            # Validate custom configuration
+            validate_env_vars "$CUSTOM_JSON" ".env.custom"
+          else
+            echo "ℹ️  No custom configuration file found (this is optional)"
+          fi
+
+          # 3. Merge configurations with precedence: custom > base
+          echo "🔀 Merging configuration files..."
+          ENV_JSON=$(echo "$BASE_JSON $CUSTOM_JSON" | jq -s 'add')
         fi
-
-        # 2. Load custom overrides (optional)
-        if [[ -f ".github/.env.custom" ]]; then
-          echo "🎨 Loading custom configuration from .env.custom..."
-          CUSTOM_JSON=$(parse_env_file ".github/.env.custom")
-          CUSTOM_COUNT=$(echo "$CUSTOM_JSON" | jq 'keys | length')
-          echo "✅ Loaded $CUSTOM_COUNT custom override variables"
-
-          # Validate custom configuration
-          validate_env_vars "$CUSTOM_JSON" ".env.custom"
-        else
-          echo "ℹ️  No custom configuration file found (this is optional)"
-        fi
-
-        # 3. Merge configurations with precedence: custom > base
-        echo "🔀 Merging configuration files..."
-        ENV_JSON=$(echo "$BASE_JSON $CUSTOM_JSON" | jq -s 'add')
 
         # Validate merged configuration
         if [[ -z "$ENV_JSON" ]] || [[ "$ENV_JSON" == "null" ]] || [[ "$ENV_JSON" == "{}" ]]; then
