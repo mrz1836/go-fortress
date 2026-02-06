@@ -30,11 +30,6 @@ on:
         required: false
         type: string
         default: "0"
-      config-mode:
-        description: "Configuration mode: new or base-only"
-        required: false
-        type: string
-        default: "new"
     secrets:
       github-token:
         description: "GitHub token for API access"
