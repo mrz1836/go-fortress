@@ -3,7 +3,7 @@
 
 set -a  # Export all variables
 
-for env_file in "$(dirname "$0")"/*.env; do
+for env_file in "$(dirname "${BASH_SOURCE[0]}")"/*.env; do
   if [[ -f "$env_file" ]]; then
     source "$env_file"
   fi
