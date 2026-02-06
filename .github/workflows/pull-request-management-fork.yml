@@ -27,25 +27,25 @@
 #
 #  ┌─────────────────────────────────────────────────────────────────────────────┐
 #  │ WHY pull_request_target IS SAFE HERE:                                       │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ Uses pull_request_target trigger for write permissions                  │
 #  │     (Required for: labels, comments, assignees)                             │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ CRITICAL: Only checks out BASE branch code, NEVER PR head               │
 #  │     (Prevents malicious code execution from untrusted forks)                │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ Fork detection uses full_name comparison for accuracy                   │
 #  │     (Not owner.login which fails for org members)                           │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ All code execution happens from trusted base repository                 │
 #  │     (No code from PR is ever executed)                                      │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ No secrets exposed to fork PRs (GITHUB_TOKEN only)                      │
 #  │     (No custom secrets accessible to malicious actors)                      │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ Sparse checkout minimizes attack surface                                │
 #  │     (Only config files checked out, no executable code)                     │
-#  │                                                                              │
+#  │                                                                             │
 #  │  ✅ Least-privilege permissions model                                       │
 #  │     (Jobs get elevated permissions only where absolutely needed)            │
 #  └─────────────────────────────────────────────────────────────────────────────┘
@@ -127,14 +127,14 @@ jobs:
     steps:
       # ┌─────────────────────────────────────────────────────────────────────┐
       # │ SECURITY SCANNERS: This checkout is SAFE despite pull_request_target│
-      # │                                                                      │
-      # │ Justification:                                                       │
+      # │                                                                     │
+      # │ Justification:                                                      │
       # │  - Only checks out TRUSTED base branch (ref: github.base_ref)       │
       # │  - NEVER checks out PR head code from untrusted fork                │
       # │  - Implements recommended two-workflow security pattern             │
       # │  - Uses sparse checkout (minimal attack surface)                    │
       # │  - No executable code from PR is ever run                           │
-      # │                                                                      │
+      # │                                                                     │
       # │ Pattern: Two-workflow security model (see SECURITY.md)              │
       # │ References: githubactions:S7631, semgrep:github-actions-checkout    │
       # └─────────────────────────────────────────────────────────────────────┘
