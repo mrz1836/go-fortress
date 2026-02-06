@@ -39,6 +39,13 @@ _load_env_files() {
     local count=0
     local in_ci="${CI:-false}"
 
+    # Ensure variables set by sourced .env files are exported so downstream
+    # steps can read them via `env` (GitHub Actions compatibility).
+    #
+    # NOTE: We intentionally enable `allexport` only for the sourcing loop.
+    # This avoids exporting our internal loader variables.
+    set -a
+
     # LC_COLLATE=C ensures consistent sort order across locales
     while IFS= read -r -d '' env_file; do
         local filename
@@ -53,6 +60,8 @@ _load_env_files() {
 
         [[ "$verbose" == "1" ]] && echo "env-loader: loaded $filename" >&2
     done < <(find "$script_dir" -maxdepth 1 -name '*.env' -print0 | LC_COLLATE=C sort -z)
+
+    set +a
 
     [[ "$verbose" == "1" ]] && echo "env-loader: $count file(s) loaded" >&2
     [[ "$count" -eq 0 ]] && return 2
