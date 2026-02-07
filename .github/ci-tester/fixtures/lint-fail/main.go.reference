@@ -23,8 +23,8 @@
 //    - Unused variables trigger golangci-lint rules
 //
 // 4. STATICCHECK JOB (LINT-004 scenario):
-//    - Unused function: UnusedFunction() is never called
-//    - Triggers staticcheck U1000 (unused code)
+//    - Discarded pure function result: fmt.Sprintf() return value ignored
+//    - Triggers staticcheck SA4017 (pure function result discarded)
 //
 // Example of what the generated code looks like:
 //
@@ -43,8 +43,10 @@
 //     return fmt.Sprintf("%d", x)
 // }
 //
-// func UnusedFunction() {                          // <- Never called
-//     fmt.Println("I am never called")
+// func main() {
+//     msg := "hello"
+//     fmt.Sprintf("%s world", msg)                    // <- Result discarded (SA4017)
+//     fmt.Println(msg)
 // }
 package main
 
