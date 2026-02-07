@@ -31,7 +31,7 @@ Fork Safety (3):
 
 Config (7):
   [PASS] MATRIX-001 - Matrix expansion validation [p2]
-  [PASS] ENV-001 - .env.base schema validation [p2]
+  [PASS] ENV-001 - env schema validation [p2]
   [PASS] CACHE-001 - Cache hit mode [p2]
   [FAIL] CACHE-002 - Cache miss mode [p2]
   [FAIL] WORKFLOW-001 - Invalid workflow YAML syntax [p2]
