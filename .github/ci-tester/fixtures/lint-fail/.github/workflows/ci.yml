@@ -118,7 +118,7 @@ jobs:
       # Generate main.go with staticcheck violations
       - name: Generate broken source code
         run: |
-          printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tunusedVar := "lint failure"\n\tfmt.Println("Hello")\n}\n\nfunc UnusedFunction() {\n\tfmt.Println("never called")\n}\n' > main.go
+          printf 'package main\n\nimport "fmt"\n\nfunc main() {\n\tfmt.Println("Hello")\n}\n\nfunc UnusedFunction() {\n\tfmt.Println("never called")\n}\n' > main.go
 
       - name: Install staticcheck
         run: go install honnef.co/go/tools/cmd/staticcheck@latest
