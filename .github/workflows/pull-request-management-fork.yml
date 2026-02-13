@@ -3,7 +3,7 @@
 #
 #  Purpose: Automate labeling, assignment, and welcoming of pull requests for forked PRs.
 #
-#  Configuration: All settings are loaded from modular .github/env/*.env files for
+#  Configuration: All settings are loaded from .env.base and .env.custom files for
 #  centralized management across all workflows.
 #
 #  Triggers: Pull request events (opened, reopened, ready for review, closed, synchronize)
@@ -82,8 +82,6 @@
 #  - GitHub Docs: Keeping your GitHub Actions and workflows secure
 #  - OWASP: CI/CD Security Top 10
 #
-# ════════════════════════════════════════════════════════════════════════════════
-#
 # ------------------------------------------------------------------------------------
 
 name: PR Management (Forks)
@@ -108,7 +106,7 @@ concurrency:
 # --------------------------------------------------------------------
 # Environment Variables
 # --------------------------------------------------------------------
-# Note: Configuration variables are loaded from modular .github/env/*.env files
+# Note: Configuration variables are loaded from .env.base and .env.custom files
 
 jobs:
   # ------------------------------------------------------------
@@ -117,8 +115,6 @@ jobs:
   load-env:
     name: 🌍 Load Environment (Base Repo)
     runs-on: ubuntu-latest
-    # Only run for fork PRs - same-repo PRs are handled by pull-request-management.yml
-    if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
     # No write perms here
     permissions:
       contents: read
@@ -127,14 +123,14 @@ jobs:
     steps:
       # ┌─────────────────────────────────────────────────────────────────────┐
       # │ SECURITY SCANNERS: This checkout is SAFE despite pull_request_target│
-      # │                                                                      │
-      # │ Justification:                                                       │
+      # │                                                                     │
+      # │ Justification:                                                      │
       # │  - Only checks out TRUSTED base branch (ref: github.base_ref)       │
       # │  - NEVER checks out PR head code from untrusted fork                │
       # │  - Implements recommended two-workflow security pattern             │
       # │  - Uses sparse checkout (minimal attack surface)                    │
       # │  - No executable code from PR is ever run                           │
-      # │                                                                      │
+      # │                                                                     │
       # │ Pattern: Two-workflow security model (see SECURITY.md)              │
       # │ References: githubactions:S7631, semgrep:github-actions-checkout    │
       # └─────────────────────────────────────────────────────────────────────┘
@@ -177,8 +173,6 @@ jobs:
   detect-fork:
     name: 🔍 Detect Fork PR
     runs-on: ubuntu-latest
-    # Only run for fork PRs - same-repo PRs are handled by pull-request-management.yml
-    if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
     permissions:
       contents: read
     outputs:
@@ -480,8 +474,7 @@ jobs:
   summary:
     name: 📊 Summary
     runs-on: ubuntu-latest
-    # Only run for fork PRs, but always show summary regardless of job status
-    if: always() && github.event.pull_request.head.repo.full_name != github.repository
+    if: always()
     needs: [load-env, detect-fork, handle-fork, clean-cache]
     steps:
       - name: 📄 Write summary
