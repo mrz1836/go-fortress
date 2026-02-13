@@ -70,6 +70,8 @@ updates:
 
   # ──────────────────────────────────────────────────────────────
   # 1b. Go Modules (magefiles/go.mod - Mage build tool)
+  #     NOTE: Allows both direct AND indirect deps to keep in sync
+  #           with parent module's transitive dependencies.
   # ──────────────────────────────────────────────────────────────
   - package-ecosystem: "gomod"
     directory: "/magefiles"
@@ -81,6 +83,7 @@ updates:
       timezone: "America/New_York"
     allow:
       - dependency-type: "direct"
+      - dependency-type: "indirect"
     groups:
       mage-deps:
         patterns:

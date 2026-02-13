@@ -162,6 +162,23 @@ jobs:
           runner-os: ubuntu-24.04
           use-local: ${{ env.MAGE_X_USE_LOCAL }}
 
+      - name: Verify magefiles/go.mod is in sync
+        run: |
+          echo "Checking if magefiles/go.mod needs updates..."
+          cd magefiles
+          go mod tidy
+          if ! git diff --quiet go.mod go.sum; then
+            echo "❌ ERROR: magefiles/go.mod is out of sync with parent module"
+            echo ""
+            echo "The following changes are needed:"
+            git diff go.mod go.sum
+            echo ""
+            echo "To fix this, run:"
+            echo "  cd magefiles && go mod tidy"
+            exit 1
+          fi
+          echo "✓ magefiles/go.mod is in sync"
+
       - name: Run static validation
         run: |
           echo "Running Guardian static validation..."
