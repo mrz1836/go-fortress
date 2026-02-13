@@ -3,8 +3,8 @@
 #
 #  Purpose: Automate labeling, assignment, and welcoming of pull requests for forked PRs.
 #
-#  Configuration: All settings are loaded from .env.base and .env.custom files for
-#  centralized management across all workflows.
+#  Configuration: All settings are loaded from modular .env files in .github/env/
+#  for centralized management across all workflows.
 #
 #  Triggers: Pull request events (opened, reopened, ready for review, closed, synchronize)
 #
