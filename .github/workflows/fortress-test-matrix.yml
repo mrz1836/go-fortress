@@ -407,7 +407,7 @@ jobs:
           path: |
             .mage-x/ci-results.jsonl
             test-output.log
-          retention-days: 7
+          retention-days: 1
           if-no-files-found: ignore
 
       # --------------------------------------------------------------------
@@ -446,4 +446,4 @@ jobs:
         with:
           name: coverage-data
           path: coverage.txt
-          retention-days: 7
+          retention-days: 1
