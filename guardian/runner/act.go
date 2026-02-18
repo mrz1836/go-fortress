@@ -213,7 +213,7 @@ func (r *ActRunner) Run(ctx context.Context, opts RunOptions) (*RunResult, error
 
 // pullImage attempts to pull a Docker image once, returning retry decision.
 func pullImage(ctx context.Context, image string) (struct{}, bool, error) {
-	cmd := exec.CommandContext(ctx, "docker", "pull", image)
+	cmd := exec.CommandContext(ctx, "docker", "pull", image) //nolint:gosec // G204: image is a Docker image name
 	var stderr bytes.Buffer
 
 	cmd.Stderr = &stderr
@@ -248,7 +248,7 @@ func (r *ActRunner) PullImageWithRetry(ctx context.Context, image string) error 
 // EnsureImageAvailable ensures a Docker image is available, pulling if necessary.
 func (r *ActRunner) EnsureImageAvailable(ctx context.Context, image string) error {
 	// Check if image exists locally
-	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image)
+	cmd := exec.CommandContext(ctx, "docker", "image", "inspect", image) //nolint:gosec // G204: image is a Docker image name
 	if err := cmd.Run(); err == nil {
 		return nil // Image exists
 	}

@@ -46,7 +46,7 @@ func (r *TerminalReporter) SetColorEnabled(enabled bool) {
 // Write outputs the report to the given writer.
 func (r *TerminalReporter) Write(_ context.Context, report *Report, w io.Writer) error {
 	// Header
-	_, _ = fmt.Fprintf(w, "\n%s Guardian Report %s\n", r.icon("shield"), r.dim(report.Mode))
+	_, _ = fmt.Fprintf(w, "\n%s Guardian Report %s\n", r.icon("shield"), r.dim(report.Mode)) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 	_, _ = fmt.Fprintf(w, "%s\n\n", strings.Repeat("-", 50))
 
 	// Static results
@@ -302,13 +302,13 @@ func (r *TerminalReporter) writeRunnerSkipped(w io.Writer, status *RunnerStatus)
 func (r *TerminalReporter) writeSummary(w io.Writer, summary *ReportSummary, duration time.Duration, runnerStatus *RunnerStatus) {
 	_, _ = fmt.Fprintf(w, "%s\n", strings.Repeat("-", 50))
 	_, _ = fmt.Fprintf(w, "Summary:\n")
-	_, _ = fmt.Fprintf(w, "  Duration: %s\n", formatDuration(duration))
+	_, _ = fmt.Fprintf(w, "  Duration: %s\n", formatDuration(duration)) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 
 	r.writeStaticSummary(w, summary)
 	scenariosSkipped := r.writeScenarioSummary(w, summary, runnerStatus)
 
 	if summary.ExceptionsApplied > 0 {
-		_, _ = fmt.Fprintf(w, "  Exceptions: %d applied\n", summary.ExceptionsApplied)
+		_, _ = fmt.Fprintf(w, "  Exceptions: %d applied\n", summary.ExceptionsApplied) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 	}
 
 	r.writeFinalStatus(w, summary, scenariosSkipped)
@@ -325,7 +325,7 @@ func (r *TerminalReporter) writeStaticSummary(w io.Writer, summary *ReportSummar
 
 	parts := r.buildFindingsParts(summary.FindingsByLevel)
 	if len(parts) > 0 {
-		_, _ = fmt.Fprintf(w, " (%s)", strings.Join(parts, ", "))
+		_, _ = fmt.Fprintf(w, " (%s)", strings.Join(parts, ", ")) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 	}
 
 	_, _ = fmt.Fprintln(w)
@@ -376,11 +376,11 @@ func (r *TerminalReporter) writeFinalStatus(w io.Writer, summary *ReportSummary,
 
 	switch {
 	case hasErrors:
-		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("cross"), r.red("Some checks failed"))
+		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("cross"), r.red("Some checks failed")) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 	case scenariosSkipped:
-		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("warning"), r.yellow("PARTIAL CHECK - scenario tests skipped"))
+		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("warning"), r.yellow("PARTIAL CHECK - scenario tests skipped")) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 	default:
-		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("check"), r.green("All checks passed!"))
+		_, _ = fmt.Fprintf(w, "%s %s\n", r.icon("check"), r.green("All checks passed!")) //nolint:gosec // G705: w is a terminal/file writer, not an HTTP response
 	}
 }
 
