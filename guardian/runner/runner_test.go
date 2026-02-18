@@ -600,7 +600,7 @@ func TestBuildArgs(t *testing.T) {
 		},
 		{
 			name: "with secrets file",
-			opts: runner.RunOptions{
+			opts: runner.RunOptions{ //nolint:gosec // G101: test fixture path, not a real credential
 				SecretsFile: "/tmp/secrets.env",
 			},
 			expected: []string{"--secret-file", "/tmp/secrets.env", "--platform", "ubuntu-latest=catthehacker/ubuntu:act-latest", "--platform", "ubuntu-22.04=catthehacker/ubuntu:act-22.04", "--platform", "ubuntu-24.04=catthehacker/ubuntu:act-latest"},
@@ -621,7 +621,7 @@ func TestBuildArgs(t *testing.T) {
 		},
 		{
 			name: "all options",
-			opts: runner.RunOptions{
+			opts: runner.RunOptions{ //nolint:gosec // G101: test fixture path, not a real credential
 				WorkflowFile:  "release.yml",
 				Job:           "deploy",
 				EventFile:     "/tmp/event.json",
