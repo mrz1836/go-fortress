@@ -317,13 +317,13 @@ jobs:
 
       - name: Upload CI results artifact
         if: always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        uses: ./.github/actions/upload-artifact-resilient
         with:
-          name: guardian-results
-          path: |
+          artifact-name: guardian-results
+          artifact-path: |
             .mage-x/ci-results.jsonl
             .mage-x/guardian.sarif
-          retention-days: 7
+          retention-days: "7"
           if-no-files-found: ignore
 
   # ----------------------------------------------------------------------------------
