@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/magefile/mage v1.15.0
 	github.com/mrz1836/go-fortress v0.0.0
-	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect; pinned: actionlint v1.7.11 requires rc.3 (rc.4 changed yaml error API, removing yaml.ParserError)
+	go.yaml.in/yaml/v4 v4.0.0-rc.3 // indirect; pinned: actionlint v1.7.11 requires rc.3 (rc.4 changed yaml error API, removing yaml.ParserError)
 )
 
 require (

@@ -89,6 +89,8 @@ updates:
         patterns:
           - "*mage*"
         update-types: ["minor", "patch"]
+    ignore:
+      - dependency-name: "go.yaml.in/yaml/v4"
     open-pull-requests-limit: 5
     assignees: ["mrz1836"]
     labels: ["chore", "dependencies", "gomod", "magefiles"]
