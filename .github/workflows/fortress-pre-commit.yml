@@ -691,7 +691,8 @@ jobs:
           if [ "${CHECKS_EXIT:-0}" -ne 0 ]; then
             echo "❌ Pre-commit checks failed with exit code: ${CHECKS_EXIT}"
             # Persist cleaned output to log file for summary and artifact upload
-            echo "$CHECKS_OUTPUT" | \
+            # Use printf to avoid echo misinterpreting leading -n/-e in output
+            printf '%s\n' "$CHECKS_OUTPUT" | \
               sed -E 's/\x1b\[[0-9;]*[mGKH]//g' | \
               sed 's/\xc2\x9b\[[0-9;]*[mGKH]//g' | \
               sed 's/�\[[0-9;]*[mGKH]//g' | \
@@ -850,8 +851,9 @@ jobs:
               fi
             done
             echo "" >> $GITHUB_STEP_SUMMARY
-            # Show failure details if pre-commit output log exists (failure case)
+            # Show failure details or success summary based on run-checks outcome + log presence
             if [[ -f pre-commit-output.log ]]; then
+              # Normal failure: log file was created, show full error details
               echo "### 🚨 Error Details" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "<details>" >> $GITHUB_STEP_SUMMARY
@@ -861,6 +863,12 @@ jobs:
               head -200 pre-commit-output.log >> $GITHUB_STEP_SUMMARY
               echo '```' >> $GITHUB_STEP_SUMMARY
               echo "</details>" >> $GITHUB_STEP_SUMMARY
+            elif [[ "${{ steps.run-checks.outcome }}" == "failure" ]]; then
+              # Early failure: step failed before the log file could be written
+              # (e.g. invalid binary path, mktemp failure, etc.)
+              echo "### 🚨 Error Details" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Pre-commit checks failed before an output log could be generated. Review the **Run pre-commit checks** step logs for details." >> $GITHUB_STEP_SUMMARY
             else
               if [[ "${{ env.GO_PRE_COMMIT_ALL_FILES }}" == "true" ]]; then
                 echo "🎯 **All pre-commit checks passed successfully on all repository files.**" >> $GITHUB_STEP_SUMMARY
