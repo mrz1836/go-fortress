@@ -39,7 +39,7 @@ func (r *SummaryReporter) Write(_ context.Context, report *Report, w io.Writer) 
 	}
 
 	// Duration
-	fmt.Fprintf(&sb, "**Duration**: %s\n\n", report.Duration) //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
+	fmt.Fprintf(&sb, "**Duration**: %s\n\n", report.Duration)
 
 	// Static Validation Summary
 	if report.StaticResults != nil {
@@ -65,11 +65,11 @@ func (r *SummaryReporter) Write(_ context.Context, report *Report, w io.Writer) 
 			limit := 10
 			for i, f := range report.StaticResults.Findings {
 				if i >= limit {
-					fmt.Fprintf(&sb, "\n*...and %d more findings*\n", //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
+					fmt.Fprintf(&sb, "\n*...and %d more findings*\n",
 						len(report.StaticResults.Findings)-limit)
 					break
 				}
-				fmt.Fprintf(&sb, "| `%s` | %d | %s | %s |\n", //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
+				fmt.Fprintf(&sb, "| `%s` | %d | %s | %s |\n",
 					f.File, f.Line, f.Severity, truncateString(f.Message, 50))
 			}
 			sb.WriteString("\n")
@@ -82,11 +82,11 @@ func (r *SummaryReporter) Write(_ context.Context, report *Report, w io.Writer) 
 
 		sb.WriteString("| Metric | Count |\n")
 		sb.WriteString("|--------|-------|\n")
-		fmt.Fprintf(&sb, "| :white_check_mark: Passed | %d |\n", report.Summary.PassedScenarios) //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
-		fmt.Fprintf(&sb, "| :x: Failed | %d |\n", report.Summary.FailedScenarios)                //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
-		fmt.Fprintf(&sb, "| :warning: Errors | %d |\n", report.Summary.ErrorScenarios)           //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
-		fmt.Fprintf(&sb, "| :fast_forward: Skipped | %d |\n", report.Summary.SkippedScenarios)   //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
-		fmt.Fprintf(&sb, "| **Total** | **%d** |\n", report.Summary.TotalScenarios)              //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
+		fmt.Fprintf(&sb, "| :white_check_mark: Passed | %d |\n", report.Summary.PassedScenarios)
+		fmt.Fprintf(&sb, "| :x: Failed | %d |\n", report.Summary.FailedScenarios)
+		fmt.Fprintf(&sb, "| :warning: Errors | %d |\n", report.Summary.ErrorScenarios)
+		fmt.Fprintf(&sb, "| :fast_forward: Skipped | %d |\n", report.Summary.SkippedScenarios)
+		fmt.Fprintf(&sb, "| **Total** | **%d** |\n", report.Summary.TotalScenarios)
 		sb.WriteString("\n")
 
 		// Show failed/error scenarios details
@@ -107,7 +107,7 @@ func (r *SummaryReporter) Write(_ context.Context, report *Report, w io.Writer) 
 				if len(r.MissingPatterns) > 0 {
 					errMsg = fmt.Sprintf("Missing patterns: %v", r.MissingPatterns)
 				}
-				fmt.Fprintf(&sb, "| `%s` | %s | %s | %s |\n", //nolint:gosec // G705: writing to strings.Builder for markdown report, not an HTTP response
+				fmt.Fprintf(&sb, "| `%s` | %s | %s | %s |\n",
 					r.ScenarioID, r.Status, r.Duration, truncateString(errMsg, 40))
 			}
 			sb.WriteString("\n")

@@ -232,6 +232,7 @@ func TestRetryWithBackoff(t *testing.T) {
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		attempts := 0
 
 		go func() {
