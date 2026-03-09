@@ -26,4 +26,7 @@ require (
 	golang.org/x/sys v0.42.0 // indirect
 )
 
-replace github.com/mrz1836/go-fortress => ../
+replace (
+	github.com/mrz1836/go-fortress => ../
+	go.yaml.in/yaml/v4 => go.yaml.in/yaml/v4 v4.0.0-rc.3
+)
