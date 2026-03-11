@@ -2,8 +2,8 @@
 # Dependabot Configuration
 #
 # Purpose:
-#   • Keep Go modules, GitHub Actions, and DevContainer base images/features
-#     up-to-date with zero-day security patches and semantic-version upgrades.
+#   • Keep Go modules, GitHub Actions and DevContainer images/features up‑to‑date with zero‑day
+#     security patches and semantic‑version upgrades.
 #   • Reduce attack surface by limiting outdated dependencies.
 #   • Minimise PR noise via smart grouping and sane pull‑request limits.
 #
@@ -70,8 +70,6 @@ updates:
 
   # ──────────────────────────────────────────────────────────────
   # 1b. Go Modules (magefiles/go.mod - Mage build tool)
-  #     NOTE: Allows both direct AND indirect deps to keep in sync
-  #           with parent module's transitive dependencies.
   # ──────────────────────────────────────────────────────────────
   - package-ecosystem: "gomod"
     directory: "/magefiles"
@@ -122,8 +120,6 @@ updates:
 
   # ──────────────────────────────────────────────────────────────
   # 2b. GitHub Actions — Composite Actions (.github/actions/*)
-  #     Uses the `directories` glob key (supported since Jun 2024)
-  #     to scan all composite action subdirectories in one entry.
   # ──────────────────────────────────────────────────────────────
   - package-ecosystem: "github-actions"
     directories:
