@@ -12,7 +12,6 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - name: Check for unpinned actions
         run: |
           echo "Checking for unpinned actions..."
