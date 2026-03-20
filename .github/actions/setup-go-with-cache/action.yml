@@ -211,7 +211,7 @@ runs:
 
     # --------------------------------------------------------------------
     # Go module cache (shared across versions)
-    # Uses actions/cache@v4 which handles both restore and save
+    # Uses actions/cache which handles both restore and save
     # --------------------------------------------------------------------
     - name: 💾 Go module cache
       id: restore-gomod
@@ -285,7 +285,7 @@ runs:
 
     # --------------------------------------------------------------------
     # Go build cache (per-version)
-    # Uses actions/cache@v4 which handles both restore and save
+    # Uses actions/cache which handles both restore and save
     # --------------------------------------------------------------------
     - name: 💾 Go build cache
       id: restore-gobuild
