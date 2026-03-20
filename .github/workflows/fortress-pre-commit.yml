@@ -292,7 +292,7 @@ jobs:
         if: steps.go-pre-commit-cache.outputs.cache-hit != 'true' || env.GO_PRE_COMMIT_USE_LOCAL == 'true'
         id: install-pre-commit
         env:
-          GH_TOKEN: ${{ secrets.github-token }}
+          GH_TOKEN: ${{ secrets.github-token || github.token }}
         run: |
           # Check if we should use local development version
           if [[ "${{ env.GO_PRE_COMMIT_USE_LOCAL }}" == "true" ]]; then
@@ -351,6 +351,7 @@ jobs:
             case "$OS" in
               linux) OS="linux" ;;
               macos) OS="darwin" ;;
+              windows) OS="windows" ;;
               *) echo "❌ Unsupported OS: $OS" && exit 1 ;;
             esac
 
