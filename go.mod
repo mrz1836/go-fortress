@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/owenrumney/go-sarif/v3 v3.3.0
-	github.com/rhysd/actionlint v1.7.11
+	github.com/rhysd/actionlint v1.7.12
 	github.com/stretchr/testify v1.11.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.3 // pinned: actionlint v1.7.10 incompatible with rc.4 (yaml.ParserError API change)
 )
@@ -13,7 +13,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/fatih/color v1.18.0 // indirect
+	github.com/fatih/color v1.19.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.21 // indirect
