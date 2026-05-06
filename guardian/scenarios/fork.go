@@ -11,14 +11,14 @@ func registerForkScenarios(r *Registry) {
 		Category:    CategoryForkSafety,
 		Description: "Fork detection mechanism validation",
 		FixturePath: ".github/ci-tester/fixtures/fork-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		EventFile:   "testdata/guardian/events/fork-pr.json",
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
 			LogPatterns: []string{"fork.*detected|is_fork.*true"},
 		},
 		Timeout: 60 * time.Second,
-		Tags:    []string{"fork", "security"},
+		Tags:    []string{"fork", tagSecurity},
 	})
 
 	// FORK-002: Secret protection on fork PRs
@@ -27,7 +27,7 @@ func registerForkScenarios(r *Registry) {
 		Category:    CategoryForkSafety,
 		Description: "Secret protection on fork PRs",
 		FixturePath: ".github/ci-tester/fixtures/fork-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "secrets-test",
 		EventFile:   "testdata/guardian/events/fork-pr.json",
 		Expected: ExpectedResult{
@@ -38,7 +38,7 @@ func registerForkScenarios(r *Registry) {
 			},
 		},
 		Timeout: 60 * time.Second,
-		Tags:    []string{"fork", "security"},
+		Tags:    []string{"fork", tagSecurity},
 	})
 
 	// FORK-003: Job skipping for fork PRs
@@ -47,7 +47,7 @@ func registerForkScenarios(r *Registry) {
 		Category:    CategoryForkSafety,
 		Description: "Job skipping for fork PRs",
 		FixturePath: ".github/ci-tester/fixtures/fork-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "fork-unsafe",
 		EventFile:   "testdata/guardian/events/fork-pr.json",
 		Expected: ExpectedResult{
@@ -55,6 +55,6 @@ func registerForkScenarios(r *Registry) {
 			LogPatterns: []string{"skipped|skipping.*fork"},
 		},
 		Timeout: 60 * time.Second,
-		Tags:    []string{"fork", "security"},
+		Tags:    []string{"fork", tagSecurity},
 	})
 }

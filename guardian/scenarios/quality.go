@@ -11,7 +11,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Unused variable detection",
 		FixturePath: ".github/ci-tester/fixtures/lint-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "lint",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -27,7 +27,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Gofmt formatting violation",
 		FixturePath: ".github/ci-tester/fixtures/lint-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "format",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -43,7 +43,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "golangci-lint rule violation",
 		FixturePath: ".github/ci-tester/fixtures/lint-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "lint",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -59,7 +59,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "staticcheck violations",
 		FixturePath: ".github/ci-tester/fixtures/lint-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "staticcheck",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -75,7 +75,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryTesting,
 		Description: "Failing unit test assertion",
 		FixturePath: ".github/ci-tester/fixtures/test-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "test",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -91,7 +91,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryTesting,
 		Description: "Test panic (nil pointer)",
 		FixturePath: ".github/ci-tester/fixtures/test-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "test-panic",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -107,7 +107,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryTesting,
 		Description: "Test timeout exceeded",
 		FixturePath: ".github/ci-tester/fixtures/test-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "test-timeout",
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
@@ -123,7 +123,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Data race detection",
 		FixturePath: ".github/ci-tester/fixtures/race-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
 			LogPatterns: []string{"DATA RACE|race detected|concurrent.*write"},
@@ -138,7 +138,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryCoverage,
 		Description: "Coverage below threshold",
 		FixturePath: ".github/ci-tester/fixtures/cov-fail",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
 			LogPatterns: []string{"coverage.*below|threshold|insufficient"},
@@ -153,7 +153,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryCoverage,
 		Description: "Coverage threshold met",
 		FixturePath: ".github/ci-tester/fixtures/pass-basic",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "coverage",
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
@@ -169,7 +169,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Benchmark execution",
 		FixturePath: ".github/ci-tester/fixtures/pass-basic",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "bench",
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
@@ -185,7 +185,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Fuzz testing execution",
 		FixturePath: ".github/ci-tester/fixtures/pass-basic",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "fuzz",
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
@@ -201,7 +201,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Clean code passes all checks",
 		FixturePath: ".github/ci-tester/fixtures/pass-basic",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
 			LogPatterns: []string{"ok|PASS|success"},
@@ -216,7 +216,7 @@ func registerQualityScenarios(r *Registry) {
 		Category:    CategoryQuality,
 		Description: "Full CI pipeline passes",
 		FixturePath: ".github/ci-tester/fixtures/pass-basic",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status: StatusSuccess,
 		},

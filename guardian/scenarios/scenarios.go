@@ -96,6 +96,11 @@ const (
 	StatusFailure ExpectedStatus = "failure"
 )
 
+const (
+	workflowCI  = "ci.yml"
+	tagSecurity = "security"
+)
+
 // Info provides scenario metadata for listing.
 type Info struct {
 	ID             string

@@ -12,7 +12,7 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "Matrix expansion validation",
 		FixturePath: ".github/ci-tester/fixtures/matrix-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
 			LogPatterns: []string{"matrix|os|version"},
@@ -27,7 +27,7 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "modular env schema validation (types, required fields, naming conventions)",
 		FixturePath: ".github/ci-tester/fixtures/env-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
 			LogPatterns: []string{"env.*valid|schema.*pass"},
@@ -42,7 +42,7 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "Cache hit mode validation",
 		FixturePath: ".github/ci-tester/fixtures/cache-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "cache-hit",
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
@@ -58,7 +58,7 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "Cache miss mode validation",
 		FixturePath: ".github/ci-tester/fixtures/cache-test",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Job:         "cache-miss",
 		Expected: ExpectedResult{
 			Status:      StatusSuccess,
@@ -89,7 +89,7 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "Deprecated runner labels detection",
 		FixturePath: ".github/ci-tester/fixtures/workflow-deprecated",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
 			LogPatterns: []string{"deprecated|ubuntu-18|runner"},
@@ -104,13 +104,13 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "Unpinned action static detection",
 		FixturePath: ".github/ci-tester/fixtures/action-unpinned",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
 			LogPatterns: []string{"unpinned|not.*pinned|SHA"},
 		},
 		Timeout: 30 * time.Second,
-		Tags:    []string{"config", "action", "security"},
+		Tags:    []string{"config", "action", tagSecurity},
 	})
 
 	// ACTION-002: action.yml schema validation errors
@@ -119,7 +119,7 @@ func registerConfigScenarios(r *Registry) {
 		Category:    CategoryConfig,
 		Description: "action.yml schema validation errors",
 		FixturePath: ".github/ci-tester/fixtures/action-invalid",
-		Workflow:    "ci.yml",
+		Workflow:    workflowCI,
 		Expected: ExpectedResult{
 			Status:      StatusFailure,
 			LogPatterns: []string{"action.yml|schema|invalid|required"},
