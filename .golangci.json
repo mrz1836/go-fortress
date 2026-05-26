@@ -118,7 +118,9 @@
             ],
             "rules": [
                 {
-                    "linters": ["goconst"],
+                    "linters": [
+                        "goconst"
+                    ],
                     "path": "_test\\.go"
                 }
             ]
