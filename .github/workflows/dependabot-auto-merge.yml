@@ -29,10 +29,21 @@ name: Dependabot Auto-merge
 
 # --------------------------------------------------------------------
 # Trigger Configuration
+#
+# Only `opened` and `synchronize` are listed because:
+#   - `opened`:      first event for any new Dependabot PR.
+#   - `synchronize`: fires when Dependabot rebases its own PR (e.g., after
+#                    a base-branch update or a conflict). The decision tree
+#                    must re-evaluate so the rebased commit can be auto-merged.
+# `reopened` and `ready_for_review` are intentionally omitted — Dependabot
+# never reopens closed PRs (it creates new ones) and never opens drafts,
+# so those events would only fire for human PRs which the job-level `if:`
+# below would skip anyway. Skipping them at the trigger level avoids the
+# corresponding "0-billing but visible" skipped runs in the UI.
 # --------------------------------------------------------------------
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize]
 
 # Security: Restrict default permissions (jobs must explicitly request what they need)
 permissions: {}
