@@ -37,10 +37,16 @@ name: "Guardian: CI Tester"
 # Trigger Configuration
 # --------------------------------------------------------------------
 on:
-  # Run on PRs that affect CI/guardian/magefiles
+  # Run on PRs that touch code Guardian actually exercises. Deliberately narrow
+  # — `.github/**` would re-trigger the full ~390s act+Docker suite on every
+  # push that touches env files, CODEOWNERS, READMEs, dependabot config, etc.
+  # Use workflow_dispatch below for ad-hoc re-runs on excluded paths.
   pull_request:
     paths:
-      - ".github/**"
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - ".github/ci-tester/**"
+      - ".github/guardian.yaml"
       - "guardian/**"
       - "magefiles/**"
       - "go.mod"
