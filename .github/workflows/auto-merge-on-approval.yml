@@ -65,6 +65,24 @@ jobs:
   # ----------------------------------------------------------------------------------
   auto-merge:
     name: 🤖 Auto-merge on Approval
+    # ----------------------------------------------------------------
+    # Billing-saver gate: skip review events that can't meaningfully
+    # change the auto-merge decision.
+    #
+    # `pull_request_review:submitted` fires for ALL review states —
+    # "approved", "changes_requested", "commented", and "dismissed".
+    # Only the first two affect auto-merge state. A pure "commented"
+    # review (very common — "lgtm but one question") would otherwise
+    # trigger a full workflow run that just exits at conditions-not-met
+    # for 1 billed minute. Same for "dismissed" reviews.
+    #
+    # The first clause keeps the non-review triggers
+    # (ready_for_review, review_request_removed) running normally —
+    # both are real state changes that must re-evaluate the PR.
+    # ----------------------------------------------------------------
+    if: |
+      github.event_name != 'pull_request_review' ||
+      contains(fromJSON('["approved", "changes_requested"]'), github.event.review.state)
     runs-on: ubuntu-latest
     permissions:
       contents: read       # Required: Sparse checkout for env files
