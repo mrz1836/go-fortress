@@ -184,6 +184,7 @@ jobs:
     # eventual `primary-runner` value, so it can't run on it. ubuntu-24.04 matches
     # what the retired load-env job used.
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
     outputs:
@@ -242,6 +243,7 @@ jobs:
       - name: 📥 Checkout (env loader)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           sparse-checkout: |
             .github/env
             .github/actions/load-env
@@ -326,12 +328,14 @@ jobs:
         if: env.MAGE_X_USE_LOCAL == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: 📥 Checkout (sparse)
         if: env.MAGE_X_USE_LOCAL != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           fetch-depth: 0 # Required so the magex `metrics:mage` step can read git metadata
           # Non-cone mode is required: this pattern mixes individual files
           # (.mage.yaml, go.mod, go.work, go.sum, fortress.yml) with directories.

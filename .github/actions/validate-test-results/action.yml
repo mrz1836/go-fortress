@@ -48,6 +48,7 @@ runs:
     - name: 🔍 Validate test results
       shell: bash
       run: |
+        set -uo pipefail
         echo "🔍 Validating test results from CI mode output..."
         source .github/scripts/parse-test-label.sh
 
@@ -195,6 +196,7 @@ runs:
         FUZZ_TESTING_ENABLED: ${{ inputs.fuzz-testing-enabled }}
         JOB_STATUS: ${{ job.status }}
       run: |
+        set -uo pipefail
         source .github/scripts/parse-test-label.sh
 
         echo "## 🔍 Test Validation Summary" >> $GITHUB_STEP_SUMMARY

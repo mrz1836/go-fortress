@@ -89,6 +89,7 @@ jobs:
   security-scans:
     name: 🔒 Security Scans
     runs-on: ${{ inputs.primary-runner }}
+    timeout-minutes: 10
     if: ${{ inputs.enable-nancy || inputs.enable-govulncheck || inputs.enable-gitleaks }}
     permissions:
       contents: read       # All scans
@@ -100,6 +101,7 @@ jobs:
       - name: 📥 Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           fetch-depth: 0 # Full history required for Gitleaks (other scans tolerate this)
 
       - name: 🔧 Parse environment variables

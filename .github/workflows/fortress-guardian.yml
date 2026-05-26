@@ -107,6 +107,7 @@ jobs:
       - name: Checkout code (env loader)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           sparse-checkout: |
             .github/env
             .github/actions/load-env
@@ -150,6 +151,8 @@ jobs:
       - name: Checkout code (full)
         if: steps.extract-vars.outputs.guardian-enabled == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Parse environment variables
         if: steps.extract-vars.outputs.guardian-enabled == 'true'
@@ -235,6 +238,7 @@ jobs:
       - name: Checkout code (sparse)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           sparse-checkout: |
             .github/
             guardian/
@@ -356,12 +360,15 @@ jobs:
     if: always()
     needs: [validate, guardian-scenarios]
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Download Guardian results
         if: always()

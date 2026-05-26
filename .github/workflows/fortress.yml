@@ -91,6 +91,7 @@ jobs:
   paths-check:
     name: 📁 Paths Check
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read # Allows paths-filter to query PR files without checking out the repo
@@ -319,7 +320,7 @@ jobs:
       contents: read # Read repository content for status checking
     # Fallback to ubuntu-latest when setup was skipped (e.g. docs-only PR via paths-check)
     # so this required check can still report a green result for branch protection.
-    runs-on: ${{ needs.setup.outputs.primary-runner || 'ubuntu-latest' }}
+    runs-on: ${{ needs.setup.outputs.primary-runner || 'ubuntu-24.04' }}
     steps:
       # --------------------------------------------------------------------
       # Build results summary showing job statuses

@@ -78,6 +78,7 @@ jobs:
     name: 📊 Static Checks (Govet + YAML Format)
     if: ${{ inputs.static-analysis-enabled == 'true' || inputs.yaml-lint-enabled == 'true' }}
     runs-on: ${{ inputs.primary-runner }}
+    timeout-minutes: 10
     permissions:
       contents: read
     outputs:
@@ -88,6 +89,8 @@ jobs:
       # --------------------------------------------------------------------
       - name: 📥 Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: 🔧 Parse environment variables
         uses: ./.github/actions/parse-env
@@ -450,6 +453,8 @@ jobs:
       # --------------------------------------------------------------------
       - name: 📥 Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       # --------------------------------------------------------------------
       # Parse environment variables
