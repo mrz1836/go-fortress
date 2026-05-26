@@ -333,6 +333,13 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0 # Required so the magex `metrics:mage` step can read git metadata
+          # Non-cone mode is required: this pattern mixes individual files
+          # (.mage.yaml, go.mod, go.work, go.sum, fortress.yml) with directories.
+          # In cone mode, `git sparse-checkout set` strict-checks each entry as a
+          # tree and fails with "fatal: '<file>' is not a directory" — especially
+          # when re-applying over the sparse state from the env-loader checkout
+          # earlier in this same job.
+          sparse-checkout-cone-mode: false
           sparse-checkout: |
             .mage.yaml
             go.mod
