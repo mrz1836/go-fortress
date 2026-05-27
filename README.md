@@ -96,48 +96,48 @@
 
 <br/>
 
-### ⚡ Performance Metrics
+### ⚡ Pipeline Performance
 
-Speed isn't just a feature—it's our religion. Watch your entire CI/CD pipeline execute faster than your coffee break, with intelligent parallelization that would make a Swiss watchmaker jealous.
+Speed isn't just a feature—it's our religion. Intelligent parallelization, lean job design, and aggressive caching keep the pipeline tight without sacrificing rigor.
 
 <table>
   <thead>
     <tr>
-      <th>Metric</th>
-      <th>Value</th>
+      <th>Capability</th>
+      <th>Strategy</th>
       <th>Details</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>🚀 Full Pipeline</strong></td>
-      <td><code>~2-3 min</code></td>
-      <td>Complete CI/CD execution from push to report</td>
+      <td><strong>⚙️ Parallel Fan-Out</strong></td>
+      <td><code>7 top-level jobs</code></td>
+      <td>Security, code-quality, pre-commit, test-suite, benchmarks, and warm-cache all run concurrently after setup; matrix expansion adds further parallelism within test-suite</td>
     </tr>
     <tr>
-      <td><strong>⚙️ Parallel Jobs</strong></td>
-      <td><code>14+ concurrent</code></td>
-      <td>Security, quality, testing run simultaneously</td>
+      <td><strong>📁 Docs-Only Short-Circuit</strong></td>
+      <td><code>paths-check gate</code></td>
+      <td>Documentation-only PRs skip the heavy pipeline via early paths-filter detection</td>
     </tr>
     <tr>
-      <td><strong>🎯 Setup Time</strong></td>
-      <td><code>3 seconds</code></td>
-      <td>Environment loading and matrix generation</td>
+      <td><strong>🗂️ Multi-Stage Gating</strong></td>
+      <td><code>sequential phases, parallel within</code></td>
+      <td>Setup → fan-out → status-check → release / completion-report — fast feedback before expensive jobs</td>
     </tr>
     <tr>
-      <td><strong>🧪 Test Execution</strong></td>
-      <td><code>32 seconds</code></td>
-      <td>Full test suite with coverage + race detection + Redis services</td>
+      <td><strong>💾 Aggressive Caching</strong></td>
+      <td><code>warm-cache + triple-layer lint</code></td>
+      <td>Pre-warmed Go module cache, golangci-lint cache, build cache, and optional Redis image cache</td>
     </tr>
     <tr>
-      <td><strong>🔐 Security Scans</strong></td>
-      <td><code>5-15 seconds</code></td>
-      <td>Nancy, Govulncheck, Gitleaks combined</td>
+      <td><strong>🔀 Fork-Safe Routing</strong></td>
+      <td><code>automatic detection</code></td>
+      <td>Fork PRs skip secret-dependent jobs (security, coverage upload, release) without breaking the pipeline</td>
     </tr>
     <tr>
-      <td><strong>📊 Coverage Deploy</strong></td>
-      <td><code>21 seconds</code></td>
-      <td>Full report generation and GitHub Pages deploy</td>
+      <td><strong>🎯 Lean Job Design</strong></td>
+      <td><code>billing-aware</code></td>
+      <td>Jobs are sized to minimize per-job billing overhead while preserving readable separation of concerns</td>
     </tr>
   </tbody>
 </table>
@@ -159,19 +159,19 @@ Say goodbye to Python dependencies and hello to pure Go bliss. These battle-test
   </thead>
   <tbody>
     <tr>
-      <td><strong><a href="https://github.com/mrz1836/mage-x">MAGE-X</a></strong> <code>v1.x.x</code></td>
+      <td><strong><a href="https://github.com/mrz1836/mage-x">MAGE-X</a></strong></td>
       <td>Build Automation</td>
       <td>Zero-config commands</td>
       <td>• 190+ built-in targets<br>• Auto-discovery<br>• Cross-platform<br>• Enterprise-ready</td>
     </tr>
     <tr>
-      <td><strong><a href="https://github.com/mrz1836/go-coverage">go-coverage</a></strong> <code>v1.x.x</code></td>
+      <td><strong><a href="https://github.com/mrz1836/go-coverage">go-coverage</a></strong></td>
       <td>Coverage Intelligence</td>
       <td>Self-hosted reports</td>
       <td>• GitHub Pages deploy<br>• History tracking (90 days)<br>• SVG badges<br>• PR comments</td>
     </tr>
     <tr>
-      <td><strong><a href="https://github.com/mrz1836/go-pre-commit">go-pre-commit</a></strong> <code>v1.x.x</code></td>
+      <td><strong><a href="https://github.com/mrz1836/go-pre-commit">go-pre-commit</a></strong></td>
       <td>Git Hooks</td>
       <td>17x faster validation</td>
       <td>• Pure Go (no Python)<br>• Parallel execution<br>• 8+ configurable checks<br>• Auto-fix support</td>
@@ -196,13 +196,13 @@ Like a medieval fortress with multiple walls, each layer of our defense system c
   <tbody>
     <tr>
       <td><strong>🛡️ Security Layer</strong></td>
-      <td>Nancy, Govulncheck, Gitleaks <code>v8.x.x</code></td>
+      <td>Nancy, Govulncheck, Gitleaks</td>
       <td>• Dependency vulnerability scanning<br>• Go-specific CVE detection<br>• Secret leak prevention<br>• Fork-safe execution</td>
     </tr>
     <tr>
       <td><strong>📊 Quality Gates</strong></td>
-      <td>golangci-lint <code>v2.x.x</code>, go vet, yamlfmt</td>
-      <td>• 66 linters enabled<br>• Static analysis<br>• YAML/JSON validation<br>• Triple-layer caching</td>
+      <td>golangci-lint, go vet, yamlfmt</td>
+      <td>• 64 linters enabled<br>• Static analysis<br>• YAML/JSON validation<br>• Triple-layer caching</td>
     </tr>
     <tr>
       <td><strong>🧪 Testing Arsenal</strong></td>
@@ -211,7 +211,7 @@ Like a medieval fortress with multiple walls, each layer of our defense system c
     </tr>
     <tr>
       <td><strong>📈 Coverage Intelligence</strong></td>
-      <td>go-coverage <code>v1.x.x</code> or Codecov</td>
+      <td>go-coverage or Codecov</td>
       <td>• Switchable providers<br>• History tracking (90 days)<br>• Trend analysis<br>• Badge generation</td>
     </tr>
     <tr>
@@ -245,7 +245,7 @@ Test your CI pipelines before pushing. Guardian provides a Go-native framework f
       <td>Run GitHub Actions locally via <code>nektos/act</code></td>
     </tr>
     <tr>
-      <td><strong>📋 35+ Scenarios</strong></td>
+      <td><strong>📋 36 Scenarios</strong></td>
       <td>Pre-built test cases for quality, security, fork safety, and supply chain</td>
     </tr>
     <tr>
@@ -259,7 +259,7 @@ Test your CI pipelines before pushing. Guardian provides a Go-native framework f
 ```bash
 magex ci:static    # Static validation (no Docker required)
 magex ci:test      # Quick test with fast scenarios
-magex ci:verify    # Full 35+ scenario verification
+magex ci:verify    # Full 36-scenario verification
 ```
 
 See **[guardian/README.md](guardian/README.md)** for complete documentation.
@@ -268,7 +268,7 @@ See **[guardian/README.md](guardian/README.md)** for complete documentation.
 
 ### 🎯 Configuration Power
 
-With 225+ knobs to turn and switches to flip, you're the architect of your own CI/CD destiny. Fine-tune every aspect from test matrices to runner selection—because one size never fits all in the real world.
+With 230+ knobs to turn and switches to flip, you're the architect of your own CI/CD destiny. Fine-tune every aspect from test matrices to runner selection—because one size never fits all in the real world.
 
 <table>
   <thead>
@@ -282,7 +282,7 @@ With 225+ knobs to turn and switches to flip, you're the architect of your own C
     <tr>
       <td><strong>Environment System</strong></td>
       <td><a href=".github/env/README.md">Modular env files</a></td>
-      <td>225+ parameters in domain-specific files</td>
+      <td>230+ parameters in domain-specific files</td>
     </tr>
     <tr>
       <td><strong>Test Matrices</strong></td>
@@ -291,7 +291,7 @@ With 225+ knobs to turn and switches to flip, you're the architect of your own C
     </tr>
     <tr>
       <td><strong>Feature Flags</strong></td>
-      <td>17+ granular toggles</td>
+      <td>24 granular toggles</td>
       <td>Enable/disable any component individually</td>
     </tr>
     <tr>
@@ -316,13 +316,13 @@ With 225+ knobs to turn and switches to flip, you're the architect of your own C
 
 ### 📐 Workflow Architecture
 
-Witness the symphony of 18 specialized workflows performing in perfect harmony. Each component knows its role, executes with precision, and passes the baton seamlessly—like a well-oiled machine, but cooler.
+Witness the symphony of 14 specialized fortress workflows performing in perfect harmony. Each component knows its role, executes with precision, and passes the baton seamlessly—like a well-oiled machine, but cooler.
 
 ```
                           🏰 GoFortress Pipeline
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                                                                         │
-│  [Load Env] ──► [Setup Config] ──► [MAGE-X Verify] ──► [Cache Warm]     │
+│            [Paths Check] ──► [Setup Config] ──► [Warm Cache]            │
 │                                                                         │
 │                          ┌── Parallel Execution ──┐                     │
 │                          │                        │                     │
@@ -344,7 +344,8 @@ Witness the symphony of 18 specialized workflows performing in perfect harmony. 
 │                    ▼                               ▼                    │
 │              [Release]                   [Completion Report]            │
 │             (tags only)                  • Statistics                   │
-│                                          • Timing Analysis              │
+│                                          • Test Analysis                │
+│                                          • Timing Metrics               │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -353,20 +354,19 @@ Witness the symphony of 18 specialized workflows performing in perfect harmony. 
 <summary><strong><code>Detailed Workflow Architecture</code></strong></summary>
 <br/>
 
-**18 Specialized Workflows:**
+**14 Fortress Workflows + 7 Utility Workflows:**
 
 ```
-fortress.yml (Main Orchestrator v1.6.0)
+fortress.yml (Main Orchestrator)
 │
-├── load-env ─────────────────────► Loads modular env files (.github/env/)
+├── paths-check ─────────────────► Docs-only short-circuit detection
 │
 ├── setup ────────────────────────► fortress-setup-config.yml
-│   ├── Fork PR detection          • Generates test matrices
-│   ├── Go version parsing         • 35+ configuration outputs
-│   └── Matrix generation          • Feature flag evaluation
-│
-├── test-magex ───────────────────► fortress-test-magex.yml
+│                                   • Loads modular env files (.github/env/)
 │                                   • Verifies MAGE-X installation
+│                                   • Fork PR detection
+│                                   • Matrix generation
+│                                   • Feature flag evaluation
 │
 ├── warm-cache ───────────────────► fortress-warm-cache.yml
 │                                   • Pre-warms Go module cache
@@ -378,13 +378,13 @@ fortress.yml (Main Orchestrator v1.6.0)
 │   └── gitleaks                    • Secret scanning (fork-safe)
 │
 ├── pre-commit ───────────────────► fortress-pre-commit.yml
-│                                   • 8+ parallel checks like:
-│                                   • gomt, golangci-lint, gitleaks
-│                                   • mod-tidy, whitespace, eof, fumpt
+│                                   • 8+ parallel checks:
+│                                   • fmt, fumpt, goimports, lint
+│                                   • mod-tidy, whitespace, eof, gitleaks
 │
 ├── code-quality ─────────────────► fortress-code-quality.yml
 │   ├── govet                       • Static analysis
-│   ├── lint                        • 60+ golangci-lint rules
+│   ├── lint                        • 64 golangci-lint rules
 │   └── yaml-format                 • YAML/JSON validation
 │
 ├── test-suite ───────────────────► fortress-test-suite.yml
@@ -392,12 +392,9 @@ fortress.yml (Main Orchestrator v1.6.0)
 │   │                               • Multi-OS/Go version matrix
 │   ├── execute-fuzz-tests ───────► fortress-test-fuzz.yml
 │   │                               • Fuzz testing (5m timeout)
-│   ├── validate-test-results ────► fortress-test-validation.yml
-│   │                               • JSONL aggregation
 │   └── process-coverage ─────────► fortress-coverage.yml
-│       ├── check-provider          • Provider selection
-│       ├── process-coverage        • go-coverage (internal)
-│       └── process-codecov         • Codecov (external)
+│                                   • Test result validation
+│                                   • go-coverage (internal) or Codecov
 │
 ├── benchmarks ───────────────────► fortress-benchmarks.yml
 │                                   • Modes: quick/normal/full
@@ -410,9 +407,17 @@ fortress.yml (Main Orchestrator v1.6.0)
 │                                   • GoReleaser integration
 │
 └── completion-report ────────────► fortress-completion-report.yml
-    ├── fortress-completion-tests.yml
-    ├── fortress-completion-statistics.yml
-    └── fortress-completion-finalize.yml
+                                    • Statistics aggregation
+                                    • Test analysis
+                                    • Timing metrics
+```
+
+**Separately triggered:**
+
+```
+fortress-guardian.yml ─────────────► Guardian CI validation framework
+                                     • Local CI reproduction
+                                     • Scenario-based testing
 ```
 
 </details>
@@ -445,7 +450,8 @@ cp -r .github/env your-project/.github/
 > **Good to know:** As a CI workflow system, `go-fortress` leverages **14 external GitHub Actions**
 > (official + security/coverage), integrates with **5+ external services** (Codecov, OSS Index,
 > pkg.go.dev, Docker Hub, GitHub Pages), and downloads **pure Go tools** at runtime (MAGE-X ecosystem,
-> security scanners). The Go code itself uses only `testify` for tests.
+> security scanners). The Go code (primarily Guardian) has four direct dependencies: `testify` (tests),
+> `actionlint` (workflow linting), `go-sarif` (SARIF reports), and `go.yaml.in/yaml/v4` (YAML parsing).
 
 <br/>
 
@@ -540,7 +546,8 @@ magex help
 GoFortress automatically detects fork PRs and routes jobs safely:
 
 **Fork-Safe Jobs** (always run):
-- `setup`, `test-magex`, `warm-cache` — Infrastructure setup
+- `paths-check` — Docs-only change detection
+- `setup`, `warm-cache` — Infrastructure setup
 - `code-quality`, `pre-commit` — Linting and formatting
 - `benchmarks` — Performance testing
 
@@ -706,9 +713,7 @@ Automatic workflow analytics when `ENABLE_COMPLETION_REPORT=true`:
 - Parallel vs sequential breakdown
 
 **Report Generation:**
-- `fortress-completion-tests.yml` — Test analysis
-- `fortress-completion-statistics.yml` — Metrics aggregation
-- `fortress-completion-finalize.yml` — Final assembly
+- `fortress-completion-report.yml` — Single workflow with named steps for statistics aggregation, test analysis, and final assembly
 
 Reports appear in the GitHub Actions workflow summary with expandable sections.
 
