@@ -456,7 +456,7 @@ cp -r .github/env your-project/.github/
 <br/>
 
 <details>
-<summary><strong>Repository Features</strong></summary>
+<summary><strong><code>Repository Features</code></strong></summary>
 <br/>
 
 This repository includes 25+ built-in features covering CI/CD, security, code quality, developer experience, and community tooling.
@@ -504,7 +504,7 @@ The system is configured via the [modular env system](.github/env/README.md) and
 </details>
 
 <details>
-<summary><strong>GitHub Workflows</strong></summary>
+<summary><strong><code>GitHub Workflows</code></strong></summary>
 <br/>
 
 All workflows are driven by modular configuration in [`.github/env/`](.github/env/README.md) — no YAML editing required.
