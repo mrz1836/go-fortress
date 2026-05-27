@@ -8,9 +8,11 @@
 #  work correctly by executing them locally via act.
 #
 #  Jobs:
-#    - load-env: Load environment configuration from .github/env/
-#    - static: Fast static validation (< 2s, no Docker required)
+#    - validate: Load env from .github/env/ + fast static validation (no Docker)
+#                (was previously two separate jobs: load-env + static — merged
+#                 to save 1 rounded billing minute per run.)
 #    - guardian-scenarios: Full scenario execution with Docker + Redis
+#    - status-check: Aggregate results + publish detailed report
 #
 #  Performance Optimizations:
 #    - Unified tool caching (actionlint, mage, act) with version-pinned keys
@@ -35,10 +37,16 @@ name: "Guardian: CI Tester"
 # Trigger Configuration
 # --------------------------------------------------------------------
 on:
-  # Run on PRs that affect CI/guardian/magefiles
+  # Run on PRs that touch code Guardian actually exercises. Deliberately narrow
+  # — `.github/**` would re-trigger the full ~390s act+Docker suite on every
+  # push that touches env files, CODEOWNERS, READMEs, dependabot config, etc.
+  # Use workflow_dispatch below for ad-hoc re-runs on excluded paths.
   pull_request:
     paths:
-      - ".github/**"
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - ".github/ci-tester/**"
+      - ".github/guardian.yaml"
       - "guardian/**"
       - "magefiles/**"
       - "go.mod"
@@ -72,11 +80,17 @@ concurrency:
 
 jobs:
   # ----------------------------------------------------------------------------------
-  # Load Environment Variables
+  # Validate (env load + static checks)
+  #
+  # Note: The previously separate load-env job is now absorbed as steps here.
+  # That trims 1 billed minute per Guardian run (load-env did ~5s of work but
+  # rounded up to a full minute). The rest of the DAG (Guardian Scenarios →
+  # Status Check) is unchanged.
   # ----------------------------------------------------------------------------------
-  load-env:
-    name: Load Environment
+  validate:
+    name: Validate (Env + Static)
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
     outputs:
@@ -87,16 +101,20 @@ jobs:
       redis-version: ${{ steps.extract-vars.outputs.redis-version }}
       go-primary-version: ${{ steps.extract-vars.outputs.go-primary-version }}
     steps:
-      - name: Checkout code (sparse)
+      # ====================================================================
+      # ENV LOAD (formerly the load-env job)
+      # ====================================================================
+      - name: Checkout code (env loader)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           sparse-checkout: |
             .github/env
             .github/actions/load-env
 
       - name: Load environment variables
-        uses: ./.github/actions/load-env
         id: load-env
+        uses: ./.github/actions/load-env
 
       - name: Extract configuration values
         id: extract-vars
@@ -120,34 +138,38 @@ jobs:
           echo "go-primary-version=$GO_PRIMARY_VERSION" >> "$GITHUB_OUTPUT"
           echo "Go version: $GO_PRIMARY_VERSION"
 
-  # ----------------------------------------------------------------------------------
-  # Static Validation (No Docker Required)
-  # ----------------------------------------------------------------------------------
-  static:
-    name: Static Validation
-    needs: [load-env]
-    if: needs.load-env.outputs.guardian-enabled == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      contents: read
-    steps:
-      - name: Checkout code
+      # ====================================================================
+      # STATIC VALIDATION (formerly the static job)
+      # ====================================================================
+      # Skip the rest of this job's work when Guardian is disabled — but still
+      # emit the outputs above so downstream `needs:` checks can read them.
+      - name: Skip notice (Guardian disabled)
+        if: steps.extract-vars.outputs.guardian-enabled != 'true'
+        run: |
+          echo "ℹ️ Guardian is disabled (ENABLE_CI_GUARDIAN != 'true'). Skipping static validation."
+
+      - name: Checkout code (full)
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Parse environment variables
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         uses: ./.github/actions/parse-env
         with:
-          env-json: ${{ needs.load-env.outputs.env-json }}
+          env-json: ${{ steps.load-env.outputs.env-json }}
 
       - name: Setup Go
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
-          go-version: ${{ needs.load-env.outputs.go-primary-version }}
+          go-version: ${{ steps.extract-vars.outputs.go-primary-version }}
           cache: true
 
       # Unified tool setup with caching (actionlint + mage only, no act needed for static)
       - name: Setup Guardian tools
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         uses: ./.github/actions/setup-guardian-tools
         with:
           actionlint-version: ${{ env.GUARDIAN_ACTIONLINT_VERSION }}
@@ -156,6 +178,7 @@ jobs:
           install-act: "false"
 
       - name: Setup MAGE-X
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         uses: ./.github/actions/setup-magex
         with:
           magex-version: ${{ env.MAGE_X_VERSION }}
@@ -163,6 +186,7 @@ jobs:
           use-local: ${{ env.MAGE_X_USE_LOCAL }}
 
       - name: Verify magefiles/go.mod is in sync
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         run: |
           echo "Checking if magefiles/go.mod needs updates..."
           cd magefiles
@@ -180,6 +204,7 @@ jobs:
           echo "✓ magefiles/go.mod is in sync"
 
       - name: Run static validation
+        if: steps.extract-vars.outputs.guardian-enabled == 'true'
         run: |
           echo "Running Guardian static validation..."
           magex ci:static
@@ -189,11 +214,11 @@ jobs:
   # ----------------------------------------------------------------------------------
   guardian-scenarios:
     name: Guardian Scenarios
-    needs: [load-env, static]
+    needs: [validate]
     if: |
       always() &&
-      needs.load-env.outputs.guardian-enabled == 'true' &&
-      needs.static.result == 'success'
+      needs.validate.outputs.guardian-enabled == 'true' &&
+      needs.validate.result == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -203,16 +228,17 @@ jobs:
     # Redis service container (conditionally enabled)
     services:
       redis:
-        image: ${{ needs.load-env.outputs.redis-enabled == 'true' && format('redis:{0}', needs.load-env.outputs.redis-version) || 'busybox:latest' }}
-        options: ${{ needs.load-env.outputs.redis-enabled == 'true' && '--health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 10' || '--entrypoint sh' }}
+        image: ${{ needs.validate.outputs.redis-enabled == 'true' && format('redis:{0}', needs.validate.outputs.redis-version) || 'busybox:latest' }}
+        options: ${{ needs.validate.outputs.redis-enabled == 'true' && '--health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 10' || '--entrypoint sh' }}
         ports:
-          - ${{ needs.load-env.outputs.redis-enabled == 'true' && '6379:6379' || '9999:9999' }}
+          - ${{ needs.validate.outputs.redis-enabled == 'true' && '6379:6379' || '9999:9999' }}
 
     steps:
       # Sparse checkout for minimal clone overhead
       - name: Checkout code (sparse)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          persist-credentials: false
           sparse-checkout: |
             .github/
             guardian/
@@ -225,12 +251,12 @@ jobs:
       - name: Parse environment variables
         uses: ./.github/actions/parse-env
         with:
-          env-json: ${{ needs.load-env.outputs.env-json }}
+          env-json: ${{ needs.validate.outputs.env-json }}
 
       - name: Setup Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
-          go-version: ${{ needs.load-env.outputs.go-primary-version }}
+          go-version: ${{ needs.validate.outputs.go-primary-version }}
           cache: true
 
       - name: Setup MAGE-X
@@ -259,10 +285,10 @@ jobs:
 
       # Cache Redis service image (when enabled)
       - name: Cache Redis image
-        if: needs.load-env.outputs.redis-enabled == 'true'
+        if: needs.validate.outputs.redis-enabled == 'true'
         uses: ./.github/actions/cache-redis-image
         with:
-          redis-version: ${{ needs.load-env.outputs.redis-version }}
+          redis-version: ${{ needs.validate.outputs.redis-version }}
           runner-os: ${{ runner.os }}
 
       - name: Check Docker status
@@ -281,7 +307,7 @@ jobs:
           echo "  • Act images cache: ${{ steps.cache-act-images.outputs.cache-hit }}"
 
       - name: Setup Redis environment
-        if: needs.load-env.outputs.redis-enabled == 'true'
+        if: needs.validate.outputs.redis-enabled == 'true'
         run: |
           echo "REDIS_ADDR=localhost:6379" >> "$GITHUB_ENV"
           echo "REDIS_HOST=localhost" >> "$GITHUB_ENV"
@@ -332,14 +358,17 @@ jobs:
   status-check:
     name: Guardian Status
     if: always()
-    needs: [load-env, static, guardian-scenarios]
+    needs: [validate, guardian-scenarios]
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
     permissions:
       contents: read
       actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Download Guardian results
         if: always()
@@ -369,15 +398,10 @@ jobs:
             echo "| Job | Status | Result |"
             echo "|-----|--------|--------|"
 
-            # Load Environment
-            LOAD_ENV_RESULT="${{ needs.load-env.result }}"
-            LOAD_ENV_ICON=$([[ "$LOAD_ENV_RESULT" == "success" ]] && echo "✅" || ([[ "$LOAD_ENV_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
-            echo "| 🔧 Load Environment | $LOAD_ENV_RESULT | $LOAD_ENV_ICON |"
-
-            # Static Validation
-            STATIC_RESULT="${{ needs.static.result }}"
-            STATIC_ICON=$([[ "$STATIC_RESULT" == "success" ]] && echo "✅" || ([[ "$STATIC_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
-            echo "| 🔍 Static Validation | $STATIC_RESULT | $STATIC_ICON |"
+            # Validate (env + static — formerly two separate jobs)
+            VALIDATE_RESULT="${{ needs.validate.result }}"
+            VALIDATE_ICON=$([[ "$VALIDATE_RESULT" == "success" ]] && echo "✅" || ([[ "$VALIDATE_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
+            echo "| 🔍 Validate (Env + Static) | $VALIDATE_RESULT | $VALIDATE_ICON |"
 
             # Guardian Scenarios
             SCENARIOS_RESULT="${{ needs.guardian-scenarios.result }}"
@@ -387,7 +411,7 @@ jobs:
             echo ""
 
             # Check if Guardian is disabled
-            if [[ "${{ needs.load-env.outputs.guardian-enabled }}" != "true" ]]; then
+            if [[ "${{ needs.validate.outputs.guardian-enabled }}" != "true" ]]; then
               echo "> ⚠️ **Note**: Guardian is disabled. Set \`ENABLE_CI_GUARDIAN=true\` in \`.github/env/90-project.env\` to enable."
               echo ""
             fi
@@ -560,11 +584,11 @@ jobs:
             echo ""
             echo "| Setting | Value |"
             echo "|---------|-------|"
-            echo "| Go Version | ${{ needs.load-env.outputs.go-primary-version }} |"
+            echo "| Go Version | ${{ needs.validate.outputs.go-primary-version }} |"
             echo "| Runner | ubuntu-24.04 |"
-            echo "| Guardian Enabled | ${{ needs.load-env.outputs.guardian-enabled }} |"
-            echo "| Redis Enabled | ${{ needs.load-env.outputs.redis-enabled }} |"
-            echo "| Redis Version | ${{ needs.load-env.outputs.redis-version }} |"
+            echo "| Guardian Enabled | ${{ needs.validate.outputs.guardian-enabled }} |"
+            echo "| Redis Enabled | ${{ needs.validate.outputs.redis-enabled }} |"
+            echo "| Redis Version | ${{ needs.validate.outputs.redis-version }} |"
             echo ""
             echo "---"
             echo ""
@@ -574,14 +598,14 @@ jobs:
       - name: Check for failures
         run: |
           # Skip check if Guardian is disabled
-          if [[ "${{ needs.load-env.outputs.guardian-enabled }}" != "true" ]]; then
+          if [[ "${{ needs.validate.outputs.guardian-enabled }}" != "true" ]]; then
             echo "Guardian is disabled - skipping status check"
             exit 0
           fi
 
           FAILED=false
 
-          if [[ "${{ needs.static.result }}" == "failure" || "${{ needs.static.result }}" == "cancelled" ]]; then
+          if [[ "${{ needs.validate.result }}" == "failure" || "${{ needs.validate.result }}" == "cancelled" ]]; then
             echo "Static validation failed or was cancelled"
             FAILED=true
           fi

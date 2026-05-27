@@ -169,6 +169,7 @@ runs:
       id: pull-images
       shell: bash
       run: |
+        set -uo pipefail
         echo "📥 Pulling act images from Docker Hub..."
         PULLED_IMAGES=""
         PULL_FAILED=false
@@ -207,6 +208,7 @@ runs:
       id: save-images
       shell: bash
       run: |
+        set -uo pipefail
         echo "💾 Saving act images to cache..."
         CACHE_PATH="${{ steps.cache-config.outputs.cache-path }}"
 

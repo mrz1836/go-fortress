@@ -26,6 +26,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -517,7 +518,9 @@ func (g *Guardian) executeScenariosParallel(ctx context.Context, scenarioList []
 	return orderedResults, nil
 }
 
-// executeScenario runs a single scenario and validates results.
+// executeScenario runs a scenario, transparently retrying when the result
+// matches the well-known act/Docker startup-flake signature (see isFlakeFastFail).
+// The total time across attempts is bounded by the scenario timeout.
 func (g *Guardian) executeScenario(ctx context.Context, s *scenarios.Scenario, opts ScenarioOptions) (*reporter.ScenarioResult, error) {
 	timeout := s.Timeout
 	if opts.Timeout > 0 {
@@ -531,6 +534,39 @@ func (g *Guardian) executeScenario(ctx context.Context, s *scenarios.Scenario, o
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	result := g.executeScenarioOnce(ctx, s, opts, timeout)
+
+	for attempt := 1; attempt <= g.config.FlakeRetries && g.isFlakeFastFail(result, s); attempt++ {
+		// Brief backoff between attempts. Wakes early if the parent ctx is canceled
+		// or the per-scenario timeout fires.
+		if g.config.FlakeRetryBackoff > 0 {
+			select {
+			case <-ctx.Done():
+				return result, nil
+			case <-time.After(g.config.FlakeRetryBackoff):
+			}
+		}
+
+		fmt.Fprintf(os.Stderr,
+			"  [RETRY %d/%d] %s flaky fast-fail in %v (act/Docker startup race?) — retrying\n",
+			attempt, g.config.FlakeRetries, s.ID, result.Duration)
+
+		result = g.executeScenarioOnce(ctx, s, opts, timeout)
+
+		if result.Status == reporter.ResultPass {
+			fmt.Fprintf(os.Stderr,
+				"  [RETRY-PASS] %s passed on attempt %d\n", s.ID, attempt+1)
+			return result, nil
+		}
+	}
+
+	return result, nil
+}
+
+// executeScenarioOnce runs a single attempt and validates the result.
+// Runner errors are captured into the result (Status=ResultError) so the
+// retry wrapper sees a consistent return shape.
+func (g *Guardian) executeScenarioOnce(ctx context.Context, s *scenarios.Scenario, opts ScenarioOptions, timeout time.Duration) *reporter.ScenarioResult {
 	runOpts := runner.RunOptions{
 		WorkingDir:    s.FixturePath,
 		WorkflowFile:  s.Workflow,
@@ -554,7 +590,7 @@ func (g *Guardian) executeScenario(ctx context.Context, s *scenarios.Scenario, o
 		result.Status = reporter.ResultError
 		result.Error = err.Error()
 
-		return result, nil
+		return result
 	}
 
 	result.ExitCode = runResult.ExitCode
@@ -563,7 +599,35 @@ func (g *Guardian) executeScenario(ctx context.Context, s *scenarios.Scenario, o
 	// Validate against expected results
 	result.Status, result.MatchedPatterns, result.MissingPatterns = s.Validate(runResult)
 
-	return result, nil
+	return result
+}
+
+// isFlakeFastFail returns true when a failed scenario matches the act/Docker
+// startup-flake signature: all expected log patterns missing AND the run
+// completed in less than FlakeFastFailThreshold. Real act executions spin up
+// a container and take seconds — a sub-threshold "expected failure" with no
+// captured output strongly indicates act exited before running the fixture.
+//
+// Deliberately excluded (not flake):
+//   - Passes (no retry needed).
+//   - Errors (handled separately at the runner layer for Docker pulls).
+//   - Failures with at least one matched pattern (real output was captured).
+//   - Scenarios without log patterns (no signal to disambiguate).
+//   - Slow failures (act did run; the failure is real).
+func (g *Guardian) isFlakeFastFail(result *reporter.ScenarioResult, s *scenarios.Scenario) bool {
+	if g.config.FlakeRetries <= 0 || g.config.FlakeFastFailThreshold <= 0 {
+		return false
+	}
+	if result.Status != reporter.ResultFail {
+		return false
+	}
+	if len(s.Expected.LogPatterns) == 0 {
+		return false
+	}
+	if len(result.MatchedPatterns) != 0 {
+		return false
+	}
+	return result.Duration < g.config.FlakeFastFailThreshold
 }
 
 // calculateSummary computes aggregate statistics for a report.

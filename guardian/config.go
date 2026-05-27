@@ -52,6 +52,20 @@ type Config struct {
 
 	// PolicyStrict enables strict policy enforcement.
 	PolicyStrict bool
+
+	// FlakeRetries is the max retries when a scenario exhibits the act/Docker
+	// startup-flake signature (all expected log patterns missing AND the run
+	// completed faster than FlakeFastFailThreshold). Set to 0 to disable.
+	FlakeRetries int
+
+	// FlakeFastFailThreshold is the duration below which a failed scenario
+	// with missing log patterns is considered a flake. Real act runs spin up
+	// a container and take seconds; flake fast-fails are typically sub-second.
+	FlakeFastFailThreshold time.Duration
+
+	// FlakeRetryBackoff is the wait between retry attempts. A brief pause
+	// lets the Docker daemon settle between back-to-back launches.
+	FlakeRetryBackoff time.Duration
 }
 
 // DefaultConfig returns configuration with sensible defaults.
@@ -72,6 +86,10 @@ func DefaultConfig() *Config {
 		DryRun:            false,
 		KeepContainers:    false,
 		PolicyStrict:      true,
+
+		FlakeRetries:           1,
+		FlakeFastFailThreshold: 2 * time.Second,
+		FlakeRetryBackoff:      2 * time.Second,
 	}
 }
 
@@ -93,9 +111,18 @@ func LoadFromEnv() *Config {
 	// Load integer configurations
 	loadIntEnv("GUARDIAN_PARALLEL_SCENARIOS", &cfg.ParallelScenarios)
 
+	// FlakeRetries accepts 0 (kill switch), so it can't use loadIntEnv (>0).
+	if v := os.Getenv("GUARDIAN_FLAKE_RETRIES"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n >= 0 {
+			cfg.FlakeRetries = n
+		}
+	}
+
 	// Load duration configurations
 	loadDurationEnv("GUARDIAN_SCENARIO_TIMEOUT", &cfg.ScenarioTimeout)
 	loadDurationEnv("GUARDIAN_STATIC_TIMEOUT", &cfg.StaticTimeout)
+	loadDurationEnv("GUARDIAN_FLAKE_FAST_FAIL_THRESHOLD", &cfg.FlakeFastFailThreshold)
+	loadDurationEnv("GUARDIAN_FLAKE_RETRY_BACKOFF", &cfg.FlakeRetryBackoff)
 
 	// Load boolean configurations
 	loadBoolEnv("GUARDIAN_VERBOSE", &cfg.Verbose)
