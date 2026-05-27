@@ -85,12 +85,10 @@ jobs:
   # - The short-circuit pattern keeps the workflow running but causes work jobs
   #   to skip, so the required check still publishes a green result.
   #
-  # On `push` events (tags + master/main), dorny/paths-filter requires a git
-  # checkout to diff commits — which this job intentionally omits to avoid the
-  # extra billed minute. Instead, the resolve step short-circuits push events by
-  # emitting docs-only=false directly so the full pipeline always runs on
-  # master/main and tag releases. On pull_request events, paths-filter queries
-  # the GitHub API (no checkout needed) using the pull-requests: read permission.
+  # Pull request events resolve the changed-file list via `gh api /pulls/{n}/files`
+  # (the pre-installed GitHub CLI) — no checkout required, and `--paginate` handles
+  # PRs with more than 100 changed files. Push events (tags + master/main) always
+  # short-circuit to `docs-only=false` so the full pipeline runs on those refs.
   # ----------------------------------------------------------------------------------
   paths-check:
     name: 📁 Paths Check
@@ -98,38 +96,36 @@ jobs:
     timeout-minutes: 5
     permissions:
       contents: read
-      pull-requests: read # Allows paths-filter to query PR files via GitHub API (no checkout needed)
+      pull-requests: read # Required: gh api reads PR files via the GitHub REST API (no checkout needed)
     outputs:
       # docs-only is TRUE only when the run contains NO non-docs changes.
-      # On pull_request events: resolved by paths-filter via GitHub API.
+      # On pull_request events: resolved via gh api /pulls/{n}/files.
       # On push events (master/main, tags): always false — full pipeline runs.
-      docs-only: ${{ steps.result.outputs.docs-only }}
+      docs-only: ${{ steps.filter.outputs.docs-only }}
     steps:
       - name: 🔍 Detect docs-only changes
         id: filter
-        if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        with:
-          # The `non_docs` filter matches everything EXCEPT the docs-style files.
-          # If at least one changed file matches this filter, non_docs == 'true'
-          # (the run is NOT docs-only). When non_docs == 'false', every changed
-          # file was docs/config-only and the heavy jobs can be safely skipped.
-          filters: |
-            non_docs:
-              - '**'
-              - '!**/*.md'
-              - '!docs/**'
-              - '!LICENSE'
-              - '!.gitignore'
-              - '!CODEOWNERS'
-              - '!.github/ISSUE_TEMPLATE/**'
-              - '!.github/PULL_REQUEST_TEMPLATE.md'
-
-      - name: 📋 Resolve docs-only output
-        id: result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
         run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "docs-only=${{ steps.filter.outputs.non_docs == 'false' }}" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT" != "pull_request" ]]; then
+            echo "docs-only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # List PR-changed files via the GitHub REST API. --paginate transparently
+          # handles PRs with more than 100 changed files.
+          files=$(gh api --paginate "/repos/${REPO}/pulls/${PR_NUMBER}/files" --jq '.[].filename')
+
+          # Drop any file that matches the docs/config allowlist. If any line
+          # survives the grep, at least one non-docs file changed.
+          non_docs=$(printf '%s\n' "$files" | grep -vE '(\.md$|^docs/|^LICENSE$|^\.gitignore$|^CODEOWNERS$|^\.github/ISSUE_TEMPLATE/|^\.github/PULL_REQUEST_TEMPLATE\.md$)' || true)
+
+          if [[ -z "$non_docs" ]]; then
+            echo "docs-only=true" >> "$GITHUB_OUTPUT"
           else
             echo "docs-only=false" >> "$GITHUB_OUTPUT"
           fi
