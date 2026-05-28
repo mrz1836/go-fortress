@@ -74,7 +74,7 @@
 #  per the official GitHub security guidance.
 #
 #  Suppressions:
-#  - Semgrep:  github-actions-dangerous-checkout (false positive)
+#  - Semgrep:  github-actions-dangerous-checkout  (false positive)
 #  - Checkov:  CKV_GHA_3                          (false positive)
 #  - CodeQL:   GH001                              (false positive)
 #  - Guardian: see .github/guardian.yaml exception entry
