@@ -326,7 +326,7 @@ jobs:
   status-check:
     name: 🎯 All Tests Passed
     if: ${{ always() }}
-    needs: [setup, warm-cache, security, code-quality, pre-commit, test-suite, benchmarks]
+    needs: [paths-check, setup, warm-cache, security, code-quality, pre-commit, test-suite, benchmarks]
     permissions:
       contents: read # Read repository content for status checking
     # Fallback to ubuntu-latest when setup was skipped (e.g. docs-only PR via paths-check)
@@ -338,6 +338,7 @@ jobs:
       # --------------------------------------------------------------------
       - name: 📊 Build results summary
         env:
+          PATHS_RESULT: ${{ needs.paths-check.result }}
           SETUP_RESULT: ${{ needs.setup.result }}
           CACHE_RESULT: ${{ needs.warm-cache.result }}
           SECURITY_RESULT: ${{ needs.security.result }}
@@ -371,6 +372,10 @@ jobs:
                 echo "$result"
               fi
             }
+
+            # Paths Check (docs-only short-circuit gate)
+            PATHS_DISPLAY=$(get_result_display "$PATHS_RESULT")
+            echo "| 📁 Paths Check | $PATHS_DISPLAY | Required |"
 
             # Setup
             SETUP_DISPLAY=$(get_result_display "$SETUP_RESULT")
@@ -425,6 +430,15 @@ jobs:
         if: ${{ always() }}
         run: |
           FAILED=false
+
+          # Path detection must succeed. If it failed/was cancelled, the docs-only
+          # short-circuit could not be computed and the whole pipeline was skipped on a
+          # false premise — this required check must NOT report green in that case.
+          # (The intentional docs-only path leaves paths-check 'success', so it passes.)
+          if [[ "${{ needs.paths-check.result }}" == "failure" || "${{ needs.paths-check.result }}" == "cancelled" ]]; then
+            echo "❌ Paths check failed or was cancelled" >&2
+            FAILED=true
+          fi
 
           # Check required jobs (these must pass)
           if [[ "${{ needs.setup.result }}" == "failure" || "${{ needs.setup.result }}" == "cancelled" ]]; then
