@@ -55,6 +55,13 @@ exclude:
   - "**/coverage.txt"
   - "**/coverage.html"
 
+  # Test fixtures (intentionally malformed YAML used by ci-tester).
+  # NOTE: magex invokes `yamlfmt -conf <cfg> .`, and yamlfmt's directory
+  # walk only honors EXACT relative paths here -- `**`/`*` globs and
+  # regex_exclude are ignored unless `doublestar: true`, which would in
+  # turn break the `.` path argument. So this must be the literal path.
+  - ".github/ci-tester/fixtures/workflow-invalid/.github/workflows/invalid.yml"
+
   # Generated code
   - "**/*.generated.*"
   - "**/*gen.go"
