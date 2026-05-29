@@ -9,8 +9,6 @@
 #
 #  Jobs:
 #    - validate: Load env from .github/env/ + fast static validation (no Docker)
-#                (was previously two separate jobs: load-env + static — merged
-#                 to save 1 rounded billing minute per run.)
 #    - guardian-scenarios: Full scenario execution with Docker + Redis
 #    - status-check: Aggregate results + publish detailed report
 #
@@ -81,11 +79,6 @@ concurrency:
 jobs:
   # ----------------------------------------------------------------------------------
   # Validate (env load + static checks)
-  #
-  # Note: The previously separate load-env job is now absorbed as steps here.
-  # That trims 1 billed minute per Guardian run (load-env did ~5s of work but
-  # rounded up to a full minute). The rest of the DAG (Guardian Scenarios →
-  # Status Check) is unchanged.
   # ----------------------------------------------------------------------------------
   validate:
     name: Validate (Env + Static)
@@ -102,7 +95,7 @@ jobs:
       go-primary-version: ${{ steps.extract-vars.outputs.go-primary-version }}
     steps:
       # ====================================================================
-      # ENV LOAD (formerly the load-env job)
+      # ENV LOAD
       # ====================================================================
       - name: Checkout code (env loader)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -139,7 +132,7 @@ jobs:
           echo "Go version: $GO_PRIMARY_VERSION"
 
       # ====================================================================
-      # STATIC VALIDATION (formerly the static job)
+      # STATIC VALIDATION
       # ====================================================================
       # Skip the rest of this job's work when Guardian is disabled — but still
       # emit the outputs above so downstream `needs:` checks can read them.
@@ -398,7 +391,7 @@ jobs:
             echo "| Job | Status | Result |"
             echo "|-----|--------|--------|"
 
-            # Validate (env + static — formerly two separate jobs)
+            # Validate (env + static)
             VALIDATE_RESULT="${{ needs.validate.result }}"
             VALIDATE_ICON=$([[ "$VALIDATE_RESULT" == "success" ]] && echo "✅" || ([[ "$VALIDATE_RESULT" == "skipped" ]] && echo "⏭️" || echo "❌"))
             echo "| 🔍 Validate (Env + Static) | $VALIDATE_RESULT | $VALIDATE_ICON |"

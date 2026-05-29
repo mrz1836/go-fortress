@@ -1,7 +1,7 @@
 # ------------------------------------------------------------------------------------
 #  🏰 GoFortress - Enterprise-grade CI/CD fortress for Go applications
 #
-#  Version: 1.8.0 | Released: 2026-05-26
+#  Version: 1.8.1 | Released: 2026-05-29
 #
 #  Built Strong. Tested Harder.
 #
@@ -131,13 +131,10 @@ jobs:
           fi
 
   # ----------------------------------------------------------------------------------
-  # Setup Configuration (load env + magex verification absorbed here)
+  # Setup Configuration (loads env + runs MAGE-X verification)
   #
-  # Note: The previously separate load-env and test-magex jobs were retired in
-  # Change 2 of the v1.8.0 billing-optimization pass. The setup-config reusable
-  # workflow now loads .github/env/ internally and runs the MAGE-X verification
-  # steps as part of the same job. This saves ~2 billed minutes per PR (those
-  # jobs each rounded up to 1 minute for <15s of real work).
+  # The setup-config reusable workflow loads .github/env/ internally and runs the
+  # MAGE-X verification steps as part of the same job.
   # ----------------------------------------------------------------------------------
   setup:
     name: 🔧 Setup Configuration

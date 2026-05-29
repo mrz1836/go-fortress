@@ -6,13 +6,6 @@
 #
 #  Maintainer: @mrz1836
 #
-#  BILLING NOTE:
-#  - This workflow was previously 4 jobs (initialize-report, process-statistics,
-#    process-tests, finalize-report) that billed 4 rounded minutes for <60s of work.
-#    All four are now consolidated into a single job; each phase remains a named step.
-#  - Statistics and tests sections used to run in parallel (~15s wall-clock savings),
-#    now serial. Net: ~3 billed minutes saved per PR for ~15s wall-clock cost.
-#
 # ------------------------------------------------------------------------------------
 
 name: GoFortress (Completion Report)
@@ -346,7 +339,7 @@ jobs:
           touch tests-section.md
 
       # ====================================================================
-      # STATISTICS SECTION STEPS (previously process-statistics job)
+      # STATISTICS SECTION STEPS
       # ====================================================================
 
       # --------------------------------------------------------------------
@@ -813,7 +806,7 @@ jobs:
           fi
 
       # ====================================================================
-      # TEST ANALYSIS STEPS (previously process-tests / analyze-tests job)
+      # TEST ANALYSIS STEPS
       # ====================================================================
 
       # --------------------------------------------------------------------
@@ -1081,7 +1074,7 @@ jobs:
           if-no-files-found: "warn"
 
       # ====================================================================
-      # FINAL REPORT ASSEMBLY (previously finalize-report job)
+      # FINAL REPORT ASSEMBLY
       # ====================================================================
 
       # --------------------------------------------------------------------

@@ -7,9 +7,8 @@
 #  This workflow coordinates sub-workflows for improved maintainability:
 #    - fortress-test-matrix.yml: Multi-platform test execution
 #    - fortress-test-fuzz.yml: Fuzz testing execution
-#    - fortress-coverage.yml: Coverage processing (now also handles validation
-#      via the .github/actions/validate-test-results composite action — the
-#      standalone validate-test-results job was retired to save billing minutes)
+#    - fortress-coverage.yml: Coverage processing (also handles validation
+#      via the .github/actions/validate-test-results composite action)
 #
 #  Maintainer: @mrz1836
 #
@@ -176,9 +175,8 @@ jobs:
   # misconfigured. The test matrix/fuzz jobs run with `continue-on-error: true` (so every
   # shard finishes and reports its summary) and never re-fail themselves; this aggregate
   # job is the single thing that turns "a test failed" into "the workflow failed". It
-  # reuses the .github/actions/validate-test-results composite action (extracted in #156)
-  # but is wired here as its own always-running job — the same role the retired
-  # fortress-test-validation.yml reusable workflow used to play.
+  # reuses the .github/actions/validate-test-results composite action, wired here as
+  # its own always-running job.
   # ----------------------------------------------------------------------------------
   validate-test-results:
     name: 🔍 Validate Test Results

@@ -45,7 +45,7 @@ on:
         required: true
         type: string
       coverage-provider:
-        description: "Coverage service provider (internal or codecov). Gates which downstream job runs (replaces the retired check-provider job)."
+        description: "Coverage service provider (internal or codecov). Gates which downstream job runs."
         required: true
         type: string
     secrets:
@@ -68,8 +68,8 @@ jobs:
   #
   # Both coverage jobs below are gated on `coverage-provider == 'internal' | 'codecov'`.
   # Without this guard, an invalid value would cause BOTH to skip and the reusable
-  # workflow to report success while silently processing no coverage. This restores the
-  # explicit failure path of the retired check-provider job for any direct caller.
+  # workflow to report success while silently processing no coverage. This guard provides
+  # an explicit failure path for any direct caller.
   # ----------------------------------------------------------------------------------
   validate-provider:
     name: 🔍 Validate Coverage Provider
@@ -93,9 +93,8 @@ jobs:
   # ----------------------------------------------------------------------------------
   # Process Coverage and Deploy to GitHub Pages (Internal Provider)
   #
-  # Note: The provider-check job was replaced by the lightweight validate-provider guard
-  # above. Provider selection is driven by the `coverage-provider` workflow input. Test
-  # result validation now runs as a coverage-independent job (validate-test-results in
+  # Note: Provider selection is driven by the `coverage-provider` workflow input. Test
+  # result validation runs as a coverage-independent job (validate-test-results in
   # fortress-test-suite.yml), not inline here.
   # ----------------------------------------------------------------------------------
   process-coverage:
@@ -159,7 +158,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0 # Fetch all history including tags for version display
 
-      # Note: test result validation now runs as a coverage-independent job
+      # Note: test result validation runs as a coverage-independent job
       # (validate-test-results in fortress-test-suite.yml) so failures are enforced
       # even when coverage is disabled or on tag builds. This job is gated behind it.
 
@@ -2447,7 +2446,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 2 # Need history for codecov to detect changes
 
-      # Note: test result validation now runs as a coverage-independent job
+      # Note: test result validation runs as a coverage-independent job
       # (validate-test-results in fortress-test-suite.yml) so failures are enforced
       # even when coverage is disabled or on tag builds. This job is gated behind it.
 
