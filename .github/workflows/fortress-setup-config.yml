@@ -679,16 +679,19 @@ jobs:
           echo "code-coverage-enabled=${{ env.ENABLE_CODE_COVERAGE }}" >> $GITHUB_OUTPUT
           echo "coverage-provider=${{ env.GO_COVERAGE_PROVIDER }}" >> $GITHUB_OUTPUT
 
-          # Validate coverage provider configuration
-          if [ "${{ env.ENABLE_CODE_COVERAGE }}" == "true" ]; then
-            PROVIDER="${{ env.GO_COVERAGE_PROVIDER }}"
-            if [ "$PROVIDER" != "internal" ] && [ "$PROVIDER" != "codecov" ]; then
-              echo "❌ Invalid GO_COVERAGE_PROVIDER: $PROVIDER"
-              echo "   Valid options are: internal, codecov"
-              exit 1
-            fi
+          # Validate coverage provider configuration ALWAYS — even when coverage is
+          # disabled. A typo here would otherwise pass silently and, if coverage is later
+          # enabled, both coverage jobs (gated on internal|codecov) would just skip,
+          # disabling coverage without any failure. Fail fast at the first job instead.
+          PROVIDER="${{ env.GO_COVERAGE_PROVIDER }}"
+          if [ "$PROVIDER" != "internal" ] && [ "$PROVIDER" != "codecov" ]; then
+            echo "❌ Invalid GO_COVERAGE_PROVIDER: $PROVIDER"
+            echo "   Valid options are: internal, codecov"
+            exit 1
+          fi
 
-            # Check for codecov token requirement
+          # Report the active provider when coverage is enabled
+          if [ "${{ env.ENABLE_CODE_COVERAGE }}" == "true" ]; then
             if [ "$PROVIDER" == "codecov" ]; then
               echo "✅ Coverage provider: Codecov"
             else
