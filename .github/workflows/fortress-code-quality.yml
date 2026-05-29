@@ -386,7 +386,7 @@ jobs:
         if: always()
         uses: ./.github/actions/collect-cache-stats
         with:
-          workflow-name: code-quality
+          workflow-name: static-checks
           job-name: static-checks
           os: ${{ inputs.primary-runner }}
           go-version: ${{ inputs.go-primary-version }}
@@ -410,18 +410,24 @@ jobs:
       # --------------------------------------------------------------------
       - name: 🚨 Aggregate failures
         if: always()
+        # Security: workflow_call inputs are routed through `env:` rather than
+        # interpolated into the shell body. This prevents script injection
+        # (SonarCloud githubactions script-injection rule) by ensuring the
+        # values are passed as environment data, never spliced into the script.
+        env:
+          STATIC_ANALYSIS_ENABLED: ${{ inputs.static-analysis-enabled }}
+          YAML_LINT_ENABLED: ${{ inputs.yaml-lint-enabled }}
+          GOVET_STATUS: ${{ steps.run-govet.outputs.govet-status }}
+          FORMAT_STATUS: ${{ steps.run-format-check.outputs.format-status }}
         run: |
-          GOVET_STATUS="${{ steps.run-govet.outputs.govet-status }}"
-          FORMAT_STATUS="${{ steps.run-format-check.outputs.format-status }}"
-
           FAILED=0
 
-          if [[ "${{ inputs.static-analysis-enabled }}" == "true" ]] && [[ "$GOVET_STATUS" == "failure" ]]; then
+          if [[ "${STATIC_ANALYSIS_ENABLED}" == "true" ]] && [[ "${GOVET_STATUS}" == "failure" ]]; then
             echo "❌ go vet detected static analysis issues"
             FAILED=1
           fi
 
-          if [[ "${{ inputs.yaml-lint-enabled }}" == "true" ]] && [[ "$FORMAT_STATUS" == "failure" ]]; then
+          if [[ "${YAML_LINT_ENABLED}" == "true" ]] && [[ "${FORMAT_STATUS}" == "failure" ]]; then
             echo "❌ YAML/JSON format check detected formatting issues"
             FAILED=1
           fi
