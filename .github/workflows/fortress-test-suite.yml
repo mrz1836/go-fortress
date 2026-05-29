@@ -7,8 +7,8 @@
 #  This workflow coordinates sub-workflows for improved maintainability:
 #    - fortress-test-matrix.yml: Multi-platform test execution
 #    - fortress-test-fuzz.yml: Fuzz testing execution
-#    - fortress-coverage.yml: Coverage processing (also handles validation
-#      via the .github/actions/validate-test-results composite action)
+#    - fortress-coverage.yml: Coverage processing (coverage only — validation is
+#      handled by the validate-test-results job in this workflow)
 #
 #  Maintainer: @mrz1836
 #
