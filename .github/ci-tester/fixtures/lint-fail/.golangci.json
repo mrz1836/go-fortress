@@ -1,14 +1,14 @@
 {
     "$schema": "https://golangci-lint.run/jsonschema/golangci.jsonschema.json",
-    "version": "2",
+    "formatters": {
+        "enable": []
+    },
     "linters": {
         "default": "none",
         "enable": []
     },
-    "formatters": {
-        "enable": []
-    },
     "run": {
         "issues-exit-code": 0
-    }
+    },
+    "version": "2"
 }
