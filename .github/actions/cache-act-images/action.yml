@@ -113,7 +113,7 @@ runs:
     - name: 💾 Restore act images from cache
       if: contains(inputs.cache-mode, 'restore')
       id: restore-cache
-      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      uses: actions/cache/restore@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
       with:
         path: ${{ steps.cache-config.outputs.cache-path }}
         key: ${{ steps.cache-config.outputs.cache-key }}
@@ -253,7 +253,7 @@ runs:
     # --------------------------------------------------------------------
     - name: 🗄️ Upload images to cache
       if: contains(inputs.cache-mode, 'save') && steps.save-images.outputs.images-saved == 'true' && steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6.0.0
       with:
         path: ${{ steps.cache-config.outputs.cache-path }}
         key: ${{ steps.cache-config.outputs.cache-key }}
