@@ -371,6 +371,47 @@ jobs:
           if-no-files-found: ignore
 
       # ====================================================================
+      # MAGEFILES MODULE SYNC (verify magefiles/go.mod is tidy)
+      #
+      # magefiles/ is a separate Go module whose indirect deps drift behind
+      # the parent module (pulled in via `replace ... => ../`). Dependabot and
+      # `go mod tidy` on the root never re-tidy it, so drift accumulates on
+      # master until some later PR's Guardian run trips over it. Verifying it
+      # here — inside a job that feeds the required `🎯 All Tests Passed`
+      # gate — makes the drift block the merge instead of merging red.
+      #
+      # No-op (skipped) when magefiles/go.mod is absent, so repos without a
+      # magefiles module are unaffected.
+      # ====================================================================
+      - name: 🧹 Verify magefiles/go.mod is in sync
+        id: run-magefiles-sync
+        if: always() && inputs.static-analysis-enabled == 'true'
+        continue-on-error: true
+        run: |
+          if [[ ! -f magefiles/go.mod ]]; then
+            echo "magefiles/go.mod not present — skipping"
+            echo "magefiles-sync-status=skipped" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Checking if magefiles/go.mod needs updates..."
+          cd magefiles
+          go mod tidy
+          if ! git diff --quiet go.mod go.sum; then
+            echo "❌ magefiles/go.mod is out of sync with 'go mod tidy'"
+            echo ""
+            echo "The following changes are needed:"
+            git diff go.mod go.sum
+            echo ""
+            echo "To fix this, run:"
+            echo "  cd magefiles && go mod tidy"
+            echo "magefiles-sync-status=failure" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "✅ magefiles/go.mod is in sync"
+          echo "magefiles-sync-status=success" >> "$GITHUB_OUTPUT"
+
+      # ====================================================================
       # SHARED: cache statistics + final failure aggregation
       # ====================================================================
       - name: 📊 Collect cache statistics
@@ -411,11 +452,17 @@ jobs:
           YAML_LINT_ENABLED: ${{ inputs.yaml-lint-enabled }}
           GOVET_STATUS: ${{ steps.run-govet.outputs.govet-status }}
           FORMAT_STATUS: ${{ steps.run-format-check.outputs.format-status }}
+          MAGEFILES_SYNC_STATUS: ${{ steps.run-magefiles-sync.outputs.magefiles-sync-status }}
         run: |
           FAILED=0
 
           if [[ "${STATIC_ANALYSIS_ENABLED}" == "true" ]] && [[ "${GOVET_STATUS}" == "failure" ]]; then
             echo "❌ go vet detected static analysis issues"
+            FAILED=1
+          fi
+
+          if [[ "${STATIC_ANALYSIS_ENABLED}" == "true" ]] && [[ "${MAGEFILES_SYNC_STATUS}" == "failure" ]]; then
+            echo "❌ magefiles/go.mod is out of sync — run 'cd magefiles && go mod tidy'"
             FAILED=1
           fi
 
