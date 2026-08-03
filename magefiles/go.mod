@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.27 // indirect
 	github.com/mattn/go-shellwords v1.0.14 // indirect
-	github.com/owenrumney/go-sarif/v3 v3.3.0 // indirect
+	github.com/owenrumney/go-sarif/v3 v3.3.1 // indirect
 	github.com/rhysd/actionlint v1.7.12 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
