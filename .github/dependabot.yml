@@ -36,7 +36,13 @@ updates:
       time: "09:00"
       timezone: "America/New_York"
     allow:
-      - dependency-type: "direct"
+      # "all" (not just "direct") is required so shared deps that are DIRECT in
+      # the root module but only TRANSITIVE in /magefiles (coupled via the
+      # `replace ../` directive) get bumped in BOTH directories within the same
+      # multi-directory group PR. Otherwise the guardian "magefiles go.mod in
+      # sync" gate fails on every shared-dependency update. Grouping below keeps
+      # this to a single weekly PR.
+      - dependency-type: "all"
     groups:
       gomod-all:
         applies-to: version-updates
