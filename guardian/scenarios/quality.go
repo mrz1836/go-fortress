@@ -4,6 +4,16 @@ import "time"
 
 // Quality scenarios test code quality checks like linting, testing, and coverage.
 
+// lintFixtureTimeout gives the lint-fail scenarios headroom for a one-time
+// cold start. All four LINT-* scenarios share the .github/ci-tester/fixtures/
+// lint-fail fixture and are serialized by the runner's per-fixture lock, so
+// whichever one wins the lock first pays for the Go SDK download that
+// actions/setup-go performs on the first act execution (subsequent runs reuse
+// act's warm tool cache and finish in seconds). A tight 30-60s ceiling made
+// the cold-start victim flake on slow runs; this ceiling only bites a job that
+// genuinely hangs, since warm runs complete well under it.
+const lintFixtureTimeout = 180 * time.Second
+
 func registerQualityScenarios(r *Registry) {
 	// LINT-001: Unused variable detection
 	r.Register(&Scenario{
@@ -17,7 +27,7 @@ func registerQualityScenarios(r *Registry) {
 			Status:      StatusFailure,
 			LogPatterns: []string{"declared and not used", "unusedVar"},
 		},
-		Timeout: 60 * time.Second,
+		Timeout: lintFixtureTimeout,
 		Tags:    []string{"fast", "lint", "p1"},
 	})
 
@@ -33,7 +43,7 @@ func registerQualityScenarios(r *Registry) {
 			Status:      StatusFailure,
 			LogPatterns: []string{"gofmt|File is not.*formatted"},
 		},
-		Timeout: 30 * time.Second,
+		Timeout: lintFixtureTimeout,
 		Tags:    []string{"lint"},
 	})
 
@@ -49,7 +59,7 @@ func registerQualityScenarios(r *Registry) {
 			Status:      StatusFailure,
 			LogPatterns: []string{"golangci-lint|staticcheck|govet"},
 		},
-		Timeout: 60 * time.Second,
+		Timeout: lintFixtureTimeout,
 		Tags:    []string{"lint"},
 	})
 
@@ -65,7 +75,7 @@ func registerQualityScenarios(r *Registry) {
 			Status:      StatusFailure,
 			LogPatterns: []string{"SA4017|SA|ST|S1|QF"},
 		},
-		Timeout: 60 * time.Second,
+		Timeout: lintFixtureTimeout,
 		Tags:    []string{"lint"},
 	})
 
