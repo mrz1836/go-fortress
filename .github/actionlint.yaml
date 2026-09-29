@@ -1,0 +1,15 @@
+# ------------------------------------------------------------------------------------
+#  actionlint Configuration
+#
+#  Purpose: Configure actionlint (used by CI Guardian static validation) for this repo.
+#
+#  Notes:
+#    - actionlint v1.7.12 does not yet know the GitHub-hosted "ubuntu-26.04" runner
+#      label, so it is declared here to avoid false "unknown label" errors.
+#    - Remove the entry once an actionlint release ships built-in support for it.
+#
+#  Docs: https://github.com/rhysd/actionlint/blob/main/docs/config.md
+# ------------------------------------------------------------------------------------
+self-hosted-runner:
+  labels:
+    - ubuntu-26.04
