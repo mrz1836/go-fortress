@@ -43,75 +43,12 @@ func (r *SummaryReporter) Write(_ context.Context, report *Report, w io.Writer) 
 
 	// Static Validation Summary
 	if report.StaticResults != nil {
-		sb.WriteString("## Static Validation\n\n")
-
-		if len(report.StaticResults.Findings) == 0 {
-			sb.WriteString(":white_check_mark: No issues found\n\n")
-		} else {
-			sb.WriteString("| Severity | Count |\n")
-			sb.WriteString("|----------|-------|\n")
-
-			for severity, count := range report.Summary.FindingsByLevel {
-				icon := severityIcon(severity)
-				fmt.Fprintf(&sb, "| %s %s | %d |\n", icon, severity, count)
-			}
-			sb.WriteString("\n")
-
-			// Findings table (limit to first 10)
-			sb.WriteString("### Findings\n\n")
-			sb.WriteString("| File | Line | Severity | Message |\n")
-			sb.WriteString("|------|------|----------|----------|\n")
-
-			limit := 10
-			for i, f := range report.StaticResults.Findings {
-				if i >= limit {
-					fmt.Fprintf(&sb, "\n*...and %d more findings*\n",
-						len(report.StaticResults.Findings)-limit)
-					break
-				}
-				fmt.Fprintf(&sb, "| `%s` | %d | %s | %s |\n",
-					f.File, f.Line, f.Severity, truncateString(f.Message, 50))
-			}
-			sb.WriteString("\n")
-		}
+		r.writeStaticResults(&sb, report)
 	}
 
 	// Scenario Results Summary
 	if len(report.ScenarioResults) > 0 {
-		sb.WriteString("## Scenario Results\n\n")
-
-		sb.WriteString("| Metric | Count |\n")
-		sb.WriteString("|--------|-------|\n")
-		fmt.Fprintf(&sb, "| :white_check_mark: Passed | %d |\n", report.Summary.PassedScenarios)
-		fmt.Fprintf(&sb, "| :x: Failed | %d |\n", report.Summary.FailedScenarios)
-		fmt.Fprintf(&sb, "| :warning: Errors | %d |\n", report.Summary.ErrorScenarios)
-		fmt.Fprintf(&sb, "| :fast_forward: Skipped | %d |\n", report.Summary.SkippedScenarios)
-		fmt.Fprintf(&sb, "| **Total** | **%d** |\n", report.Summary.TotalScenarios)
-		sb.WriteString("\n")
-
-		// Show failed/error scenarios details
-		var failedScenarios []ScenarioResult
-		for _, r := range report.ScenarioResults {
-			if r.Status == ResultFail || r.Status == ResultError {
-				failedScenarios = append(failedScenarios, r)
-			}
-		}
-
-		if len(failedScenarios) > 0 {
-			sb.WriteString("### Failed Scenarios\n\n")
-			sb.WriteString("| Scenario | Status | Duration | Error |\n")
-			sb.WriteString("|----------|--------|----------|-------|\n")
-
-			for _, r := range failedScenarios {
-				errMsg := r.Error
-				if len(r.MissingPatterns) > 0 {
-					errMsg = fmt.Sprintf("Missing patterns: %v", r.MissingPatterns)
-				}
-				fmt.Fprintf(&sb, "| `%s` | %s | %s | %s |\n",
-					r.ScenarioID, r.Status, r.Duration, truncateString(errMsg, 40))
-			}
-			sb.WriteString("\n")
-		}
+		r.writeScenarioResults(&sb, report)
 	}
 
 	// Write to output
@@ -147,6 +84,82 @@ func (r *SummaryReporter) WriteToStepSummary(ctx context.Context, report *Report
 	defer func() { _ = f.Close() }()
 
 	return r.Write(ctx, report, f)
+}
+
+// writeStaticResults writes the static validation section.
+func (r *SummaryReporter) writeStaticResults(sb *strings.Builder, report *Report) {
+	sb.WriteString("## Static Validation\n\n")
+
+	if len(report.StaticResults.Findings) == 0 {
+		sb.WriteString(":white_check_mark: No issues found\n\n")
+		return
+	}
+
+	sb.WriteString("| Severity | Count |\n")
+	sb.WriteString("|----------|-------|\n")
+
+	for severity, count := range report.Summary.FindingsByLevel {
+		icon := severityIcon(severity)
+		fmt.Fprintf(sb, "| %s %s | %d |\n", icon, severity, count)
+	}
+	sb.WriteString("\n")
+
+	// Findings table (limit to first 10)
+	sb.WriteString("### Findings\n\n")
+	sb.WriteString("| File | Line | Severity | Message |\n")
+	sb.WriteString("|------|------|----------|----------|\n")
+
+	limit := 10
+	for i, f := range report.StaticResults.Findings {
+		if i >= limit {
+			fmt.Fprintf(sb, "\n*...and %d more findings*\n",
+				len(report.StaticResults.Findings)-limit)
+			break
+		}
+		fmt.Fprintf(sb, "| `%s` | %d | %s | %s |\n",
+			f.File, f.Line, f.Severity, truncateString(f.Message, 50))
+	}
+	sb.WriteString("\n")
+}
+
+// writeScenarioResults writes the scenario results section.
+func (r *SummaryReporter) writeScenarioResults(sb *strings.Builder, report *Report) {
+	sb.WriteString("## Scenario Results\n\n")
+
+	sb.WriteString("| Metric | Count |\n")
+	sb.WriteString("|--------|-------|\n")
+	fmt.Fprintf(sb, "| :white_check_mark: Passed | %d |\n", report.Summary.PassedScenarios)
+	fmt.Fprintf(sb, "| :x: Failed | %d |\n", report.Summary.FailedScenarios)
+	fmt.Fprintf(sb, "| :warning: Errors | %d |\n", report.Summary.ErrorScenarios)
+	fmt.Fprintf(sb, "| :fast_forward: Skipped | %d |\n", report.Summary.SkippedScenarios)
+	fmt.Fprintf(sb, "| **Total** | **%d** |\n", report.Summary.TotalScenarios)
+	sb.WriteString("\n")
+
+	// Show failed/error scenarios details
+	var failedScenarios []ScenarioResult
+	for _, sr := range report.ScenarioResults {
+		if sr.Status == ResultFail || sr.Status == ResultError {
+			failedScenarios = append(failedScenarios, sr)
+		}
+	}
+
+	if len(failedScenarios) == 0 {
+		return
+	}
+
+	sb.WriteString("### Failed Scenarios\n\n")
+	sb.WriteString("| Scenario | Status | Duration | Error |\n")
+	sb.WriteString("|----------|--------|----------|-------|\n")
+
+	for _, sr := range failedScenarios {
+		errMsg := sr.Error
+		if len(sr.MissingPatterns) > 0 {
+			errMsg = fmt.Sprintf("Missing patterns: %v", sr.MissingPatterns)
+		}
+		fmt.Fprintf(sb, "| `%s` | %s | %s | %s |\n",
+			sr.ScenarioID, sr.Status, sr.Duration, truncateString(errMsg, 40))
+	}
+	sb.WriteString("\n")
 }
 
 // severityIcon returns an emoji icon for the severity level.
