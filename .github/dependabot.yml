@@ -18,6 +18,9 @@
 #   • PR titles prefixed with chore(scope): – conventional commits.
 #   • Force‑push and delete‑branch disabled via branch‑protection rules.
 #   • PR limit = 10 to avoid queue flooding.
+#   • Cooldown on version updates – new releases wait 3 days (Go modules: patch 3 /
+#     minor 7 / major 14 days) before a PR opens; first‑party and trusted publishers
+#     are excluded. Security updates are never delayed.
 #   • All dependency PRs require passing CI + CODEOWNERS review.
 # ────────────────────────────────────────────────────────────────
 
@@ -56,6 +59,12 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+      exclude: ["github.com/mrz1836/*", "golang.org/x/*"]
 
   # ──────────────────────────────────────────────────────────────
   # 1a. CI Test Fixtures — vuln-fail (NEVER update)
@@ -69,6 +78,55 @@ updates:
     ignore:
       - dependency-name: "*"
     open-pull-requests-limit: 0
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+      exclude: ["github.com/mrz1836/*", "golang.org/x/*"]
+
+  # ──────────────────────────────────────────────────────────────
+  # 1b. CI Test Fixtures — remaining Go module fixtures
+  # ──────────────────────────────────────────────────────────────
+  - package-ecosystem: "gomod"
+    directories:
+      - "/.github/ci-tester/fixtures/action-unpinned"
+      - "/.github/ci-tester/fixtures/cache-test"
+      - "/.github/ci-tester/fixtures/cov-fail"
+      - "/.github/ci-tester/fixtures/env-test"
+      - "/.github/ci-tester/fixtures/fork-test"
+      - "/.github/ci-tester/fixtures/lint-fail"
+      - "/.github/ci-tester/fixtures/matrix-test"
+      - "/.github/ci-tester/fixtures/pass-basic"
+      - "/.github/ci-tester/fixtures/race-fail"
+      - "/.github/ci-tester/fixtures/sec-fail"
+      - "/.github/ci-tester/fixtures/slsa-test"
+      - "/.github/ci-tester/fixtures/test-fail"
+    target-branch: "master"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/New_York"
+    allow:
+      - dependency-type: "direct"
+    groups:
+      gomod-fixtures:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    open-pull-requests-limit: 5
+    assignees: ["mrz1836"]
+    labels: ["chore", "dependencies", "gomod"]
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 3
+      exclude: ["github.com/mrz1836/*", "golang.org/x/*"]
 
   # ──────────────────────────────────────────────────────────────
   # 2. GitHub Actions Workflows
@@ -91,6 +149,9 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    cooldown:
+      default-days: 3
+      exclude: ["actions/*", "github/*", "gitleaks/*", "ossf/*"]
 
   # ──────────────────────────────────────────────────────────────
   # 2b. GitHub Actions — Composite Actions (.github/actions/*)
@@ -112,6 +173,9 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    cooldown:
+      default-days: 3
+      exclude: ["actions/*", "github/*", "gitleaks/*", "ossf/*"]
 
   # ──────────────────────────────────────────────────────────────
   # 3. DevContainer (devcontainer.json : base image + features)
@@ -135,3 +199,6 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    cooldown:
+      default-days: 3
+      exclude: ["ghcr.io/devcontainers/features/*"]
