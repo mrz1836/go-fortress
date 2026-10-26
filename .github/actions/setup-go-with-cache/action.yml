@@ -445,6 +445,10 @@ runs:
       uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
       with:
         go-version: ${{ inputs.go-version }}
+        # Resolve "1.x.x" to the newest patch release, not whatever the runner image
+        # cached. setup-go sets GOTOOLCHAIN=local, so a go.mod needing a newer patch
+        # (e.g. from a dependency bump) would otherwise fail with "go.mod requires go >= ...".
+        check-latest: true
         cache: false # we handle caches ourselves
 
     # --------------------------------------------------------------------
