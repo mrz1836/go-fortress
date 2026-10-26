@@ -1,9 +1,9 @@
 module github.com/mrz1836/go-fortress
 
-go 1.26.0
+go 1.26.10
 
 require (
-	github.com/owenrumney/go-sarif/v3 v3.3.1
+	github.com/owenrumney/go-sarif/v3 v3.3.2
 	github.com/rhysd/actionlint v1.7.12
 	github.com/stretchr/testify v1.12.1
 	go.yaml.in/yaml/v4 v4.0.0-rc.3 // pinned: actionlint v1.7.10 incompatible with rc.4 (yaml.ParserError API change)

@@ -158,6 +158,7 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ steps.extract-vars.outputs.go-primary-version }}
+          check-latest: true # newest patch, not the runner's cached one (go.mod may need it)
           cache: true
 
       # Unified tool setup with caching (actionlint + mage only, no act needed for static)
@@ -250,6 +251,7 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: ${{ needs.validate.outputs.go-primary-version }}
+          check-latest: true # newest patch, not the runner's cached one (go.mod may need it)
           cache: true
 
       - name: Setup MAGE-X

@@ -1,6 +1,6 @@
 module github.com/mrz1836/go-fortress/magefiles
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/magefile/mage v1.17.2
@@ -16,7 +16,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-runewidth v0.0.31 // indirect
 	github.com/mattn/go-shellwords v1.0.16 // indirect
-	github.com/owenrumney/go-sarif/v3 v3.3.1 // indirect
+	github.com/owenrumney/go-sarif/v3 v3.3.2 // indirect
 	github.com/rhysd/actionlint v1.7.12 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
