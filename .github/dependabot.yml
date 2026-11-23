@@ -12,7 +12,7 @@
 #   https://docs.github.com/en/code-security/dependabot/configuration-options-for-dependency-updates
 #
 # Security Hardened Defaults:
-#   • Weekly cadence (Monday 09:00 America/New_York) – align with CVE dump cycle.
+#   • Weekly cadence (Wednesday 09:00 America/New_York) – align with CVE dump cycle.
 #   • Direct dependencies only – prevents unsolicited transitive churn.
 #   • PRs labeled, assigned, and target the protected "master" branch.
 #   • PR titles prefixed with chore(scope): – conventional commits.
@@ -35,7 +35,7 @@ updates:
     target-branch: "master"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "wednesday"
       time: "09:00"
       timezone: "America/New_York"
     allow:
@@ -105,7 +105,7 @@ updates:
     target-branch: "master"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "wednesday"
       time: "09:00"
       timezone: "America/New_York"
     allow:
@@ -185,7 +185,7 @@ updates:
     target-branch: "master"
     schedule:
       interval: "weekly"
-      day: "monday"
+      day: "wednesday"
       time: "09:30"
       timezone: "America/New_York"
     allow:
